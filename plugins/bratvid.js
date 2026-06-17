@@ -4,6 +4,12 @@ const path = require("path");
 const crypto = require("crypto");
 const { writeExifVid } = require("../lib/sticker");
 
+// Auto generate tmp folder
+const tmpDir = "./tmp";
+if (!fs.existsSync(tmpDir)) {
+    fs.mkdirSync(tmpDir, { recursive: true });
+}
+
 let handler = async (m, { sock, text }) => {
     if (!text) return m.reply(`*example:*\n${m.cmd} ʙᴀʀᴢ ɢᴀɴᴛᴇɴɢ🥰`);
 
@@ -21,7 +27,7 @@ let handler = async (m, { sock, text }) => {
     });
 
     let file = path.join(
-        "./tmp",
+        tmpDir, // pake variable tmpDir
         crypto.randomBytes(6).toString("hex") + ".webp"
     );
 
