@@ -1,227 +1,225 @@
+const yts = require("yt-search");
 const axios = require("axios");
-const fs = require("fs");
-const path = require("path");
+const sharp = require("sharp");
+const { generateWAMessageFromContent } = require("badzz88/baileys");
 
-function clearTmp() {
-    const dirs = ["./tmp", "./temp", "./cache"];
+async function getAudioDownload(url) {
+    try {
+        const { data } = await axios.get(
+            `https://api.nexray.eu.cc/downloader/v1/ytmp3?url=${encodeURIComponent(url)}`
+        );
 
-    for (const dir of dirs) {
-        try {
-            if (!fs.existsSync(dir)) continue;
+        const download = data?.result?.url;
+        const title = data?.result?.title;
 
-            for (const file of fs.readdirSync(dir)) {
-                const filePath = path.join(dir, file);
+        if (download) return { download, title };
+    } catch {}
 
-                try {
-                    if (fs.statSync(filePath).isFile()) {
-                        fs.unlinkSync(filePath);
-                    }
-                } catch {}
-            }
-        } catch {}
-    }
+    throw new Error("Gagal mendapatkan audio");
+}
+
+async function getVideoDownload(url) {
+    try {
+        const { data } = await axios.get(
+            `https://api.nexray.eu.cc/downloader/ytmp4?url=${encodeURIComponent(url)}`
+        );
+
+        if (data?.status) {
+            return data.result?.url || data.result?.download_url;
+        }
+    } catch {}
+
+    throw new Error("Gagal mendapatkan video");
 }
 
 let handler = async (m, { sock, text, command }) => {
-    if (!text) {
-        return m.reply(
-            `*Contoh :*\n` +
-            `.play bergema\n` +
-            `.play2 bergema\n` +
-            `.ytmp3 https://youtu.be/xxxx\n` +
-            `.ytmp4 https://youtu.be/xxxx`
-        );
+
+    // YTS
+    if (["yts", "ytsearch", "youtubesearch"].includes(command)) {
+
+        if (!text) {
+            return m.reply(
+                `Contoh:\n${m.prefix}yts komang`
+            );
+        }
+
+        await m.react("🕕");
+
+        try {
+
+            const searchResults = await yts(text);
+            const videos = searchResults.videos;
+
+            if (!videos.length)
+                return m.reply("Video tidak ditemukan");
+
+            const video = videos[0];
+
+            const imageResponse = await axios.get(
+                video.thumbnail,
+                { responseType: "arraybuffer" }
+            );
+
+            const thumbnailBuffer = await sharp(imageResponse.data)
+                .resize(300, 170)
+                .jpeg()
+                .toBuffer();
+
+            const content = {
+                buttonsMessage: {
+                    contentText:
+`🎬 *YOUTUBE SEARCH*
+
+📌 ${video.title}
+👤 ${video.author.name}
+⏱️ ${video.timestamp}
+👀 ${video.views}
+📅 ${video.ago}
+
+🔗 ${video.url}`,
+
+                    footerText: "Barz MD",
+
+                    locationMessage: {
+                        jpegThumbnail: thumbnailBuffer,
+                        name: video.title,
+                        address: `${video.author.name}`
+                    },
+
+                    buttons: [
+                        {
+                            buttonId: `.ytmp3 ${video.url}`,
+                            buttonText: {
+                                displayText: "🎵 Audio"
+                            },
+                            type: 1
+                        },
+                        {
+                            buttonId: `.ytmp4 ${video.url}`,
+                            buttonText: {
+                                displayText: "🎥 Video"
+                            },
+                            type: 1
+                        }
+                    ],
+
+                    headerType: 6
+                }
+            };
+
+            const msg = generateWAMessageFromContent(
+                m.chat,
+                content,
+                { quoted: m }
+            );
+
+            await sock.relayMessage(
+                m.chat,
+                msg.message,
+                { messageId: msg.key.id }
+            );
+
+            await m.react("✅");
+
+        } catch (e) {
+            console.log(e);
+            m.react("❌");
+            m.reply("Gagal mencari video.");
+        }
+
+        return;
     }
 
-    try {
+    // YTMP3
+    if (["ytmp3", "ytaudio"].includes(command)) {
 
-        await m.react("⏱️");
-
-        // PLAY AUDIO
-        if (command === "play") {
-
-            let { data } = await axios.get(
-                `https://api.nexray.eu.cc/downloader/ytplayvid?q=${encodeURIComponent(text)}`,
-                { timeout: 30000 }
-            );
-
-            if (!data?.status) return m.reply("❌ Lagu tidak ditemukan");
-
-            let res = data.result;
-
-            const thumb = await sock.sendMessage(
-                m.chat,
-                {
-                    image: { url: res.thumbnail },
-                    caption: `
-*🎵 PLAY MUSIC*
-
-📌 *Title :* ${res.title}
-👤 *Channel :* ${res.channel}
-⏱️ *Duration :* ${res.duration}
-👀 *Views :* ${res.views}
-📅 *Upload :* ${res.upload_at}
-                    `.trim()
-                },
-                { quoted: m }
-            );
-
-            await sock.sendMessage(
-                m.chat,
-                {
-                    audio: {
-                        url: res.audio ||
-                             res.audio_url ||
-                             res.download_url ||
-                             res.url
-                    },
-                    mimetype: "audio/mpeg",
-                    fileName: `${res.title}.mp3`
-                },
-                {
-                    quoted: thumb
-                }
-            );
-
-            await m.react("✅");
-        }
-
-        // PLAY VIDEO
-        else if (command === "play2") {
-
-            let { data } = await axios.get(
-                `https://api.nexray.eu.cc/downloader/ytplayvid?q=${encodeURIComponent(text)}`,
-                { timeout: 30000 }
-            );
-
-            if (!data?.status) return m.reply("❌ Video tidak ditemukan");
-
-            let res = data.result;
-
-            await sock.sendMessage(
-                m.chat,
-                {
-                    video: {
-                        url: res.video ||
-                             res.download_url ||
-                             res.url
-                    },
-                    caption: `
-*🎬 PLAY VIDEO*
-
-📌 *Title :* ${res.title}
-👤 *Channel :* ${res.channel}
-⏱️ *Duration :* ${res.duration}
-👀 *Views :* ${res.views}
-                    `.trim()
-                },
-                { quoted: m }
-            );
-
-            await m.react("✅");
-        }
-
-        // YTMP3
-        else if (command === "ytmp3") {
-
-            let { data } = await axios.get(
-                `https://api.nexray.eu.cc/downloader/ytmp3?url=${encodeURIComponent(text)}`,
-                { timeout: 30000 }
-            );
-
-            if (!data?.status) return m.reply("❌ Gagal mengambil audio");
-
-            let res = data.result || data;
-
-            const thumb = await sock.sendMessage(
-                m.chat,
-                {
-                    image: {
-                        url: res.thumbnail || res.thumb
-                    },
-                    caption: `
-*🎵 YTMP3 DOWNLOADER*
-
-📌 ${res.title || "Unknown"}
-                    `.trim()
-                },
-                { quoted: m }
-            );
-
-            await sock.sendMessage(
-                m.chat,
-                {
-                    audio: {
-                        url: res.download_url ||
-                             res.audio ||
-                             res.url
-                    },
-                    mimetype: "audio/mpeg",
-                    fileName: `${res.title || "audio"}.mp3`
-                },
-                {
-                    quoted: thumb
-                }
-            );
-
-            await m.react("✅");
-        }
-
-        // YTMP4
-        else if (command === "ytmp4") {
-
-            let { data } = await axios.get(
-                `https://api.nexray.eu.cc/downloader/ytmp4?url=${encodeURIComponent(text)}&resolusi=720`,
-                { timeout: 30000 }
-            );
-
-            if (!data?.status) return m.reply("❌ Gagal mengambil video");
-
-            let res = data.result || data;
-
-            await sock.sendMessage(
-                m.chat,
-                {
-                    video: {
-                        url: res.download_url ||
-                             res.video ||
-                             res.url
-                    },
-                    caption: res.title || "YTMP4 Downloader"
-                },
-                { quoted: m }
-            );
-
-            await m.react("✅");
-        }
-
-    } catch (e) {
-
-        console.log(e);
-
-        if (
-            e.message.includes("ENOSPC") ||
-            e.message.includes("no space left")
-        ) {
-            clearTmp();
-
+        if (!text)
             return m.reply(
-                "❌ error asu."
+                `Contoh:\n${m.prefix}ytmp3 https://youtube.com/watch?v=xxx`
             );
+
+        await m.react("🕕");
+
+        try {
+
+            const result = await getAudioDownload(text);
+
+            await sock.sendMessage(
+                m.chat,
+                {
+                    audio: {
+                        url: result.download
+                    },
+                    mimetype: "audio/mpeg",
+                    fileName: `${result.title || "audio"}.mp3"
+                },
+                { quoted: m }
+            );
+
+            await m.react("✅");
+
+        } catch (e) {
+            console.log(e);
+            m.react("❌");
+            m.reply("Gagal mengunduh audio.");
         }
 
-        await m.react("❌");
-        m.reply(`Error:\n${e.message}`);
+        return;
+    }
 
-    } finally {
+    // YTMP4
+    if (["ytmp4", "ytvideo"].includes(command)) {
 
-        clearTmp();
+        if (!text)
+            return m.reply(
+                `Contoh:\n${m.prefix}ytmp4 https://youtube.com/watch?v=xxx`
+            );
 
+        await m.react("🕕");
+
+        try {
+
+            const downloadUrl = await getVideoDownload(text);
+
+            await sock.sendMessage(
+                m.chat,
+                {
+                    video: {
+                        url: downloadUrl
+                    },
+                    caption: "✅ Video berhasil diunduh"
+                },
+                { quoted: m }
+            );
+
+            await m.react("✅");
+
+        } catch (e) {
+            console.log(e);
+            m.react("❌");
+            m.reply("Gagal mengunduh video.");
+        }
+
+        return;
     }
 };
 
-handler.command = ["play", "play2", "ytmp3", "ytmp4"];
-handler.help = ["play", "play2", "ytmp3", "ytmp4"];
+handler.command = [
+    "yts",
+    "ytsearch",
+    "youtubesearch",
+    "ytmp3",
+    "ytaudio",
+    "ytmp4",
+    "ytvideo"
+];
+
+handler.help = [
+    "yts <query>",
+    "ytmp3 <url>",
+    "ytmp4 <url>"
+];
+
 handler.tags = ["downloader"];
 
 module.exports = handler;
