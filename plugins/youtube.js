@@ -151,7 +151,7 @@ let handler = async (m, { sock, text, command }) => {
                         url: result.download
                     },
                     mimetype: "audio/mpeg",
-                    fileName: `${result.title || "audio"}.mp3"
+                    fileName: `${result.title || "audio"}.mp3`
                 },
                 { quoted: m }
             );
