@@ -1,7 +1,7 @@
 const yts = require("yt-search");
 const axios = require("axios");
 const sharp = require("sharp");
-const { generateWAMessageFromContent } = require("badzz88/baileys");
+const { generateWAMessageFromContent } = require("@badzz88/baileys");
 
 async function getAudioDownload(url) {
     try {
