@@ -1,19 +1,26 @@
 const axios = require("axios");
 
 let handler = async (m, { sock, text }) => {
-  if (!text) return m.reply(`Contoh:\n${m.cmd} 😹+😭`);
+  if (!text) {
+    return m.reply(`*Contoh :*\n${m.cmd} 😎+🔥`);
+  }
 
-  let [emoji1, emoji2] = text.split("+");
+  const [emoji1, emoji2] = text.split("+");
+
   if (!emoji1 || !emoji2) {
-    return m.reply(`Contoh:\n${m.cmd} 😹+😭`);
+    return m.reply(`*Contoh :*\n${m.cmd} 😎+🔥`);
   }
 
   try {
-    const url = `https://api.siputzx.my.id/api/tools/emojimix?emoji1=${encodeURIComponent(emoji1)}&emoji2=${encodeURIComponent(emoji2)}`;
+    const { data } = await axios.get(
+      `https://api.siputzx.my.id/api/tools/emojimix?emoji1=${encodeURIComponent(emoji1)}&emoji2=${encodeURIComponent(emoji2)}`
+    );
+
+    if (!data.status) return m.reply("❌ Emoji tidak didukung.");
 
     await sock.sendSticker(
       m.chat,
-      url,
+      data.data,
       m,
       {
         packname: global.packname,
@@ -23,7 +30,7 @@ let handler = async (m, { sock, text }) => {
 
   } catch (e) {
     console.log(e);
-    m.reply("❌ Gagal membuat EmojiMix");
+    m.reply("❌ Gagal membuat EmojiMix.");
   }
 };
 

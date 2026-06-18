@@ -47,7 +47,7 @@ let handler = async (m, { sock, text, usedPrefix, command }) => {
 
 handler.help = ['tts'];
 handler.tags = ['tools'];
-handler.command = ['tts'];
+handler.command = /^(tts|ngomong)$/i;
 handler.limit = true;
 
 module.exports = handler;
