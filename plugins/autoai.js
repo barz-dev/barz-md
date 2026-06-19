@@ -7,60 +7,54 @@ if (!fs.existsSync('./database')) fs.mkdirSync('./database', { recursive: true }
 if (!fs.existsSync(path)) fs.writeFileSync(path, '{"on":false}')
 if (!fs.existsSync(historyPath)) fs.writeFileSync(historyPath, '{}')
 
-// AUTO CLEAN HISTORY TIAP 1 JAM
+// Auto clean history tiap 1 jam
 setInterval(() => {
   try {
     let historyDB = JSON.parse(fs.readFileSync(historyPath))
     let now = Date.now()
     let cleaned = 0
-
     for (let userId in historyDB) {
-      // filter chat yang < 1 jam = 3600000 ms
-      let newHistory = historyDB[userId].filter(chat => {
-        return!chat.time || (now - chat.time) < 3600000
-      })
-
+      let newHistory = historyDB[userId].filter(chat =>!chat.time || (now - chat.time) < 3600000)
       if (newHistory.length!== historyDB[userId].length) cleaned++
       historyDB[userId] = newHistory
-
-      // hapus user kalo history kosong
       if (historyDB[userId].length === 0) delete historyDB[userId]
     }
-
     fs.writeFileSync(historyPath, JSON.stringify(historyDB))
     if (cleaned > 0) console.log(`[AUTO AI] Cleaned history ${cleaned} user > 1 jam`)
-  } catch(e) {
-    console.log('[AUTO AI] Clean error:', e.message)
-  }
-}, 3600000) // 1 jam = 3600000ms
+  } catch(e) {}
+}, 3600000)
 
 let handler = async (m, { args, isOwner }) => {
-  if (!isOwner) return m.reply('Owner only bang')
+  if (!isOwner) return m.reply('Khusus Own doang')
 
   let db = JSON.parse(fs.readFileSync(path))
 
   if (args[0] === 'on') {
     db.on = true
     fs.writeFileSync(path, JSON.stringify(db))
-    return m.reply('✅ Done Tuan')
+    return m.reply('Done Tuan')
   }
+
   if (args[0] === 'off') {
     db.on = false
     fs.writeFileSync(path, JSON.stringify(db))
-    return m.reply('❌ Auto AI OFF Global')
+    return m.reply('Done Tuan')
   }
+
   if (args[0] === 'clear') {
     fs.writeFileSync(historyPath, '{}')
-    return m.reply('✅ Done Tuan')
+    return m.reply('Done Tuan ✅ History AI dihapus')
   }
+
   m.reply(`Status: ${db.on? 'ON ✅' : 'OFF ❌'}\n.autoai on/off/clear`)
 }
 handler.command = ['autoai']
 handler.owner = true
 module.exports = handler
 
+// Listener auto AI
 setTimeout(async () => {
-  let sock = global.conn || global.sock || global.client
+  let sock = global.sock // PAKE SOCK SESUAI LU
   if (!sock) return console.log('[AUTO AI] Gagal ambil sock')
 
   sock.ev.on('messages.upsert', async ({ messages }) => {
@@ -76,14 +70,15 @@ setTimeout(async () => {
     let userId = msg.key.participant || msg.key.remoteJid
 
     let trigger = false
-    if (!isGroup) trigger = true
+    if (!isGroup) trigger = true // PC auto jawab
     else {
       let mention = msg.message.extendedTextMessage?.contextInfo?.mentionedJid || []
       let quoted = msg.message.extendedTextMessage?.contextInfo?.stanzaId
-      if (mention.includes(botId)) trigger = true
-      else if (quoted) trigger = true
-      else if (/bot/i.test(text)) trigger = true
+      if (mention.includes(botId)) trigger = true // di tag
+      else if (quoted) trigger = true // di reply
+      else if (/bot/i.test(text)) trigger = true // ada kata bot
     }
+
     if (!trigger) return
 
     try {
@@ -94,17 +89,17 @@ setTimeout(async () => {
       if (!historyDB[userId]) historyDB[userId] = []
       let history = historyDB[userId]
 
-      history.push({ role: 'user', content: text, time: Date.now() }) // tambah timestamp
+      history.push({ role: 'user', content: text, time: Date.now() })
       if (history.length > 10) history.shift()
 
       let jawaban = await aiLuminai(history, userId)
+
       history.push({ role: 'assistant', content: jawaban, time: Date.now() })
       historyDB[userId] = history
       fs.writeFileSync(historyPath, JSON.stringify(historyDB))
 
       await sock.sendMessage(msg.key.remoteJid, { text: jawaban }, { quoted: msg })
       console.log(`[AUTO AI] ${userId.split('@')[0]}: ${text.slice(0,25)}...`)
-
     } catch(e) {
       console.log('[AUTO AI] Error:', e.message)
       await sock.sendMessage(msg.key.remoteJid, { text: 'Error AI bang, coba lagi' }, { quoted: msg })
@@ -122,7 +117,7 @@ async function aiLuminai(history, userId) {
       },
       timeout: 15000
     })
-    return res.data.result || 'Modar'
+    return res.data.result || 'AI lagi error bang'
   } catch {
     let res = await axios.get('https://api.ryzumi.vip/api/ai/gpt-4', {
       params: {
@@ -132,6 +127,6 @@ async function aiLuminai(history, userId) {
       },
       timeout: 15000
     })
-    return res.data.result || 'Modar'
+    return res.data.result || 'AI lagi error bang'
   }
 }
