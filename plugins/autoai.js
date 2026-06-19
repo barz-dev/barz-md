@@ -4,8 +4,8 @@ const axios = require('axios')
 
 // ─── CONFIG ───────────────────────────────────────
 const DB_PATH = './database/autoai.json'
-const GROQ_API = 'https://api.groq.com/openai/v1/chat/completions'
-const MODEL = 'llama-3.1-70b-versatile'
+const GROQ_API = 'https://api.groq.com/openai/v1'
+const MODEL = 'openai/gpt-oss-20b'
 
 // Ambil API key dari berbagai sumber
 const getApiKey = () => {
