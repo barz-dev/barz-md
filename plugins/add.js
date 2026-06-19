@@ -1,34 +1,52 @@
-let handler = async (m, { conn, args, isAdmin, isOwner }) => {
-    if (!m.isGroup) return m.reply('Fitur ini khusus grup!')
-    if (!isAdmin &&!isOwner) return m.reply('Cuma admin/owner yg bisa add!')
+let handler = async (m, { sock, args, isAdmin, isOwner }) => {
+    // 1. Cek grup
+    if (!m.isGroup) return sock.sendMessage(m.chat, { text: '❌ Khusus grup!' })
 
-    if (!args[0]) return m.reply('Format:.add 628xxx')
+    // 2. Cek admin
+    if (!isAdmin &&!isOwner) return sock.sendMessage(m.chat, { text: '❌ Cuma admin/owner!' })
 
-    let number = args[0].replace(/[^0-9]/g, '') + '@s.whatsapp.net'
-    let groupMetadata = await conn.groupMetadata(m.chat)
-    let participants = groupMetadata.participants.map(v => v.id)
+    // 3. Cek nomor
+    if (!args[0]) return sock.sendMessage(m.chat, { text: '❌ Format:.add 62851xxx' })
 
-    // Cek bot admin
-    let botNumber = conn.user.id.split(':')[0] + '@s.whatsapp.net'
-    let botIsAdmin = groupMetadata.participants.find(v => v.id == botNumber)?.admin
-    if (!botIsAdmin) return m.reply('Bot harus jadi admin dulu!')
+    let number = args[0].replace(/[^0-9]/g, '')
+    if (number.length < 10) return sock.sendMessage(m.chat, { text: '❌ Nomor kependekan!' })
 
-    // Cek udah di grup
-    if (participants.includes(number)) return m.reply('Orang itu udah di grup!')
-
-    // Cek nomor terdaftar WA
-    let [result] = await conn.onWhatsApp(number)
-    if (!result?.exists) return m.reply('Nomor gak terdaftar WhatsApp!')
+    let jid = number + '@s.whatsapp.net'
 
     try {
-        await conn.groupParticipantsUpdate(m.chat, [number], 'add')
-        m.reply(`✅ Berhasil add @${number.split('@')[0]}`, null, { mentions: [number] })
+        // 4. Ambil data grup
+        let groupMetadata = await sock.groupMetadata(m.chat)
+        let participants = groupMetadata.participants.map(v => v.id)
+
+        // 5. Cek bot admin
+        let botJid = sock.user.id
+        let botAdmin = groupMetadata.participants.find(p => p.id == botJid)?.admin
+        if (!botAdmin) return sock.sendMessage(m.chat, { text: '❌ Bot belum jadi admin!' })
+
+        // 6. Cek udah di grup
+        if (participants.includes(jid)) return sock.sendMessage(m.chat, { text: '❌ Orang itu udah di grup!' })
+
+        // 7. Cek nomor WA aktif
+        let [cek] = await sock.onWhatsApp(jid)
+        if (!cek?.exists) return sock.sendMessage(m.chat, { text: '❌ Nomor gak daftar WA!' })
+
+        // 8. Eksekusi add
+        await sock.groupParticipantsUpdate(m.chat, [jid], 'add')
+        await sock.sendMessage(m.chat, {
+            text: `✅ Berhasil add @${number}`,
+            mentions: [jid]
+        })
+
     } catch (e) {
-        m.reply('Gagal add. Mungkin nomor private / baru ganti nomor')
+        // 9. Kalo error, kasih tau errornya apa
+        console.log('ERROR ADD:', e)
+        await sock.sendMessage(m.chat, {
+            text: `☢️ Error!\n${e.message}\n\nPenyebab umum:\n1. Nomor privasi\n2. Baru ganti nomor\n3. Kena limit add`
+        })
     }
 }
-handler.command = ['add', 'invite']
+
+handler.command = ['add', 'tambah']
 handler.group = true
 handler.admin = true
-
 module.exports = handler
