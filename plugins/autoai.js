@@ -42,7 +42,7 @@ let autoai = async (m, sock) => {
 
   try {
     await sock.sendPresenceUpdate('composing', m.chat)
-    await new Promise(r => setTimeout(r, 1000 + Math.random() * 800))
+    await new Promise(r => setTimeout(r, 800 + Math.random() * 700))
 
     let historyDB = JSON.parse(fs.readFileSync(historyPath))
     if (!historyDB[userId]) historyDB[userId] = []
@@ -50,54 +50,57 @@ let autoai = async (m, sock) => {
     history.push({ role: 'user', content: text, time: Date.now() })
     if (history.length > 10) history.shift()
 
-    let jawaban = await aiLuminai(history, userId)
+    let jawaban = await aiGroq(history, userId)
     history.push({ role: 'assistant', content: jawaban, time: Date.now() })
     historyDB[userId] = history
     fs.writeFileSync(historyPath, JSON.stringify(historyDB))
 
     await sock.sendMessage(m.chat, { text: jawaban }, { quoted: m })
-    console.log(`[AUTO AI] ${userId.split('@')[0]}: ${text.slice(0,30)}...`)
-  } catch(e) {
-    console.log('[AUTO AI] Error:', e.message)
-  }
+  } catch(e) {}
 }
 
-async function aiLuminai(history, userId) {
+async function aiGroq(history, userId) {
   const text = history[history.length-1].content
   const botName = global.packname || 'AI Bot'
+  const GROQ_KEY = global.groqApiKey
 
-  let prompt = `Kamu ${botName}, AI assistant ramah. Jawab singkat padat bahasa Indonesia gaul max 3 baris\n`
+  let defaultReplies = [
+    'Lagi mikir dulu bang, ntar gue bales 😅',
+    'Hmm menarik... tapi otak gue nge-lag dikit',
+    'Gue paham maksud lu, tapi lagi blank nih wkwk',
+    'Bentar bang, lagi loading... *loading 99%*',
+    'Udah gue cerna, tapi jawabannya ketelen wkwk'
+  ]
+
+  if (!GROQ_KEY) return defaultReplies[Math.floor(Math.random() * defaultReplies.length)]
+
+  let messages = [
+    {role: 'system', content: `Kamu ${botName}, AI assistant ramah, asik, lucu. Jawab singkat padat bahasa Indonesia gaul max 3 baris`}
+  ]
+
   history.slice(-8, -1).forEach(h => {
-    prompt += `${h.role === 'user'? 'User' : botName}: ${h.content}\n`
+    messages.push({role: h.role, content: h.content})
   })
-  prompt += `User: ${text}\n${botName}:`
+  messages.push({role: 'user', content: text})
 
   try {
-    const encodedPrompt = encodeURIComponent(prompt)
-    const url = `https://api.siputzx.my.id/api/ai/glm47flash?prompt=${encodedPrompt}`
-
-    console.log('[GLM] Request URL:', url)
-    const res = await axios.get(url, {
-      timeout: 20000,
+    const res = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
+      model: 'llama-3.1-70b-versatile',
+      messages: messages,
+      max_tokens: 250,
+      temperature: 0.8
+    }, {
+      timeout: 15000,
       headers: {
-        'User-Agent': 'Mozilla/5.0 Windows NT 10.0 Win64 x64 AppleWebKit/537.36'
+        'Authorization': `Bearer ${GROQ_KEY}`,
+        'Content-Type': 'application/json'
       }
     })
 
-    console.log('[GLM] Response status:', res.data?.status)
-    console.log('[GLM] Response data:', JSON.stringify(res.data).slice(0,200))
-
-    if (res.data && res.data.status === true && res.data.response) {
-      return res.data.response.trim()
-    }
-    if (res.data && res.data.response) {
-      return res.data.response.trim()
-    }
-    return 'AI gak ngasih jawaban bang 😅'
+    return res.data.choices[0].message.content.trim()
   } catch (e) {
-    console.log('[GLM47FLASH] ERROR:', e.message)
-    if (e.response) console.log('[GLM47FLASH] Response error:', e.response.data)
-    return 'AI error: ' + e.message
+    // Kalo error/limit, pake jawaban default biar gak polos
+    return defaultReplies[Math.floor(Math.random() * defaultReplies.length)]
   }
 }
 
