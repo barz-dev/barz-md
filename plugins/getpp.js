@@ -1,23 +1,35 @@
-// plugins/getpp.js - CommonJS version
-let handler = async (m, { conn, text }) => {
-  let who = m.quoted?.sender ||
-            m.mentionedJid[0] ||
-            (text? text.replace(/[^0-9]/g, '') + '@s.whatsapp.net' : m.sender)
+let handler = async (m, { sock, text }) => {
+  try {
+    let who = m.quoted?.sender ||
+              m.mentionedJid[0] ||
+              (text? text.replace(/[^0-9]/g, '') + '@s.whatsapp.net' : m.sender)
 
-  if (!who) return m.reply('Reply chat, tag, atau ketik nomornya dong')
+    if (!who) return m.reply('Reply/tag/nomor dong')
 
-  let pp = await conn.profilePictureUrl(who, 'image')
-   .catch(_ => 'https://i.imgur.com/2dzxIWP.png')
+    await m.react('⏳')
 
-  await conn.sendMessage(m.chat, {
-    image: { url: pp },
-    caption: `PP @${who.split('@')[0]}`,
-    mentions: [who]
-  }, { quoted: m })
+    let ppUrl = await sock.profilePictureUrl(who, 'image').catch(() => null)
+
+    if (!ppUrl) {
+      await m.react('❌')
+      return m.reply('PP-nya private atau belum diset')
+    }
+
+    await sock.sendMessage(m.chat, {
+      image: { url: ppUrl },
+      caption: `PP @${who.split('@')[0]}`,
+      mentions: [who]
+    }, { quoted: m })
+    await m.react('✅')
+
+  } catch (e) {
+    await m.react('❌')
+    m.reply('Error: ' + e.message)
+    console.log(e)
+  }
 }
 
-handler.help = ['getpp @tag/nomor/reply']
-handler.tags = ['tools']
 handler.command = ['getpp', 'pp']
-
+handler.help = ['getpp']
+handler.tags = ['tools']
 module.exports = handler
