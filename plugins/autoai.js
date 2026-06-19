@@ -2,240 +2,106 @@ const fs = require("fs")
 const path = require("path")
 const axios = require("axios")
 
-
 const db = path.join(process.cwd(), "database")
-const cacheFile = path.join(db, "cache.js")
+const file = path.join(db, "cache.js")
 
+if (!fs.existsSync(db)) fs.mkdirSync(db)
 
-if (!fs.existsSync(db)) {
-  fs.mkdirSync(db)
+if (!fs.existsSync(file)) {
+  fs.writeFileSync(file, `
+module.exports = {
+ autoAI:false,
+ historyAI:{}
+}
+`)
 }
 
+let cache = require(file)
 
-if (!fs.existsSync(cacheFile)) {
+const save = () => {
   fs.writeFileSync(
-    cacheFile,
-`module.exports = {
-  autoAI: false,
-  historyAI: {}
-}`
+    file,
+    "module.exports = " + JSON.stringify(cache, null, 2)
   )
 }
 
 
-let cache = require(cacheFile)
+let handler = async (m,{sock,text}) => {
 
+  if (!text)
+    return m.reply(`AutoAI ${cache.autoAI ? "ON":"OFF"}
 
-function saveCache() {
-  fs.writeFileSync(
-    cacheFile,
-    "module.exports = " +
-    JSON.stringify(cache, null, 2)
-  )
-}
-
-
-
-function getMenu() {
-
-  try {
-
-    return fs.readFileSync(
-      path.join(process.cwd(), "menu.js"),
-      "utf-8"
-    )
-
-  } catch {
-
-    return "menu.js tidak ditemukan"
-
-  }
-
-}
-
-
-
-
-let handler = async (m, { sock, text }) => {
-
-
-  if (!text) {
-
-    return m.reply(
-      `AutoAI Global : ${cache.autoAI ? "ON" : "OFF"}
-
-Contoh:
 .autoai on
-.autoai off`
-    )
-
-  }
+.autoai off`)
 
 
-
-  if (text.toLowerCase() === "on") {
-
+  if(text == "on") {
     cache.autoAI = true
-    saveCache()
-
-    return m.reply(
-      "AutoAI global aktif ✅\nSemua grup & private"
-    )
-
+    save()
+    return m.reply("AutoAI aktif")
   }
 
 
-
-  if (text.toLowerCase() === "off") {
-
+  if(text == "off") {
     cache.autoAI = false
-    cache.historyAI = {}
-    saveCache()
-
-    return m.reply(
-      "AutoAI global mati ❌"
-    )
-
+    save()
+    return m.reply("AutoAI mati")
   }
-
 
 }
-
-
-
-handler.command = ["autoai"]
-handler.help = ["autoai on/off"]
-handler.tags = ["ai"]
-
-
-module.exports = handler
-
-
-
 
 
 handler.before = async (m,{sock}) => {
 
+  console.log("AUTOAI CHECK:", m.text)
 
-  if (!cache.autoAI) return
-  if (!m.text) return
-  if (m.fromMe) return
 
+  if(!cache.autoAI) return
+  if(!m.text) return
+  if(m.fromMe) return
 
 
   let bot =
-  sock.user.id.split(":")[0] +
-  "@s.whatsapp.net"
+  sock.user.id.split(":")[0] + "@s.whatsapp.net"
 
 
-
-  let trigger =
-    m.mentionedJid?.includes(bot) ||
-    m.quoted?.sender === bot ||
-    m.text.toLowerCase().startsWith("bot")
-
+  let hit =
+  m.mentionedJid?.includes(bot) ||
+  m.quoted?.sender == bot ||
+  m.text.toLowerCase().startsWith("bot")
 
 
-  if (!trigger) return
+  if(!hit) return
 
 
-
-  let id = m.chat
-
-
-
-  if (!cache.historyAI[id])
-    cache.historyAI[id] = []
-
-
-
-  cache.historyAI[id].push({
-    role:"user",
-    content:m.text
-  })
-
-
-
-  if(cache.historyAI[id].length > 15)
-    cache.historyAI[id].shift()
-
+  await m.reply("sebentar...")
 
 
   try {
 
 
-
-    let menu = getMenu()
-
-
-
-    let res = await axios.get(
+    let r = await axios.get(
       "https://api.siputzx.my.id/api/ai/chat",
       {
         params:{
-
           message:m.text,
-
-
-          history:
-          JSON.stringify(
-            cache.historyAI[id]
-          ),
-
-
           system:
-`
-Nama kamu ${global.packname || "AI"}.
-
-Kamu adalah AI assistant WhatsApp.
-
-Kamu punya akses fitur bot dari menu.js:
-
-${menu}
-
-
-Aturan:
-- Jika user tanya fitur bot, cek menu.js.
-- Kasih contoh command yang benar.
-- Jangan bikin command palsu.
-- Kalau user tanya gambar, arahkan ke command image jika ada.
-- Jawab santai bahasa Indonesia.
-- Jangan spam.
-
-`
-        },
-
-        timeout:30000
-
+          `Kamu AI WhatsApp. Jawab bahasa Indonesia.`
+        }
       }
     )
 
 
-
-    let reply =
-    res.data.result ||
-    res.data.response ||
-    res.data.message ||
-    "AI tidak menjawab"
-
-
-
-    cache.historyAI[id].push({
-
-      role:"assistant",
-      content:reply
-
-    })
-
-
-    saveCache()
-
+    let ans =
+    r.data.result ||
+    r.data.response ||
+    r.data.message
 
 
     await sock.sendMessage(
-      id,
+      m.chat,
       {
-        text:reply
+        text: ans
       },
       {
         quoted:m
@@ -243,15 +109,19 @@ Aturan:
     )
 
 
+  } catch(e){
 
-  } catch(e) {
-
-    console.log(
-      "AUTOAI ERROR:",
-      e.message
-    )
+    console.log(e)
+    m.reply("AI error")
 
   }
 
-
 }
+
+
+handler.command = ["autoai"]
+handler.tags = ["ai"]
+handler.help = ["autoai on/off"]
+
+
+module.exports = handler
