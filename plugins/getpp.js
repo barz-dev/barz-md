@@ -1,35 +1,31 @@
 let handler = async (m, { sock, text }) => {
+  let who = m.quoted?.sender ||
+            m.mentionedJid[0] ||
+            (text? text.replace(/[^0-9]/g, '') + '@s.whatsapp.net' : m.sender)
+
+  if (!who) return m.reply(`Contoh:\n.getpp @tag\n.getpp 628xxx\nReply chat orang`)
+
+  await m.reply(`Ngambil PP... bentar ⏳`)
+
   try {
-    let who = m.quoted?.sender ||
-              m.mentionedJid[0] ||
-              (text? text.replace(/[^0-9]/g, '') + '@s.whatsapp.net' : m.sender)
-
-    if (!who) return m.reply('Reply/tag/nomor dong')
-
-    await m.react('⏳')
-
     let ppUrl = await sock.profilePictureUrl(who, 'image').catch(() => null)
 
-    if (!ppUrl) {
-      await m.react('❌')
-      return m.reply('PP-nya private atau belum diset')
-    }
+    if (!ppUrl) return m.reply(`PP-nya private atau belum diset 😢`)
 
     await sock.sendMessage(m.chat, {
       image: { url: ppUrl },
       caption: `PP @${who.split('@')[0]}`,
       mentions: [who]
     }, { quoted: m })
-    await m.react('✅')
 
-  } catch (e) {
-    await m.react('❌')
-    m.reply('Error: ' + e.message)
+  } catch(e) {
     console.log(e)
+    m.reply(`Gagal ambil PP bang 😭\nError: ${e.message}`)
   }
 }
 
-handler.command = ['getpp', 'pp']
-handler.help = ['getpp']
+handler.help = ['getpp @tag/nomor/reply']
 handler.tags = ['tools']
+handler.command = ['getpp', 'pp']
+
 module.exports = handler
