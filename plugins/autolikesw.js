@@ -7,9 +7,6 @@ if (!fs.existsSync('./database')) fs.mkdirSync('./database', { recursive: true }
 if (!fs.existsSync(path)) fs.writeFileSync(path, '{"on":false}')
 if (!fs.existsSync(cacheFile)) fs.writeFileSync(cacheFile, '[]')
 
-// 8 emoji resmi WA status
-const EMOJI_LIST = ['❤️','😂','😮','😢','🙏','🔥','👏','💯']
-
 let handler = async (m, { args, isOwner }) => {
   if (!isOwner) return m.reply('Owner only bang')
 
@@ -18,16 +15,16 @@ let handler = async (m, { args, isOwner }) => {
   if (args[0] === 'on') {
     db.on = true
     fs.writeFileSync(path, JSON.stringify(db))
-    return m.reply('✅ Done Mek')
+    return m.reply('✅ Done Tuan')
   }
   if (args[0] === 'off') {
     db.on = false
     fs.writeFileSync(path, JSON.stringify(db))
-    return m.reply('❌ Auto stalker SW OFF')
+    return m.reply('❌ Done Tuan')
   }
   if (args[0] === 'reset') {
     fs.writeFileSync(cacheFile, '[]')
-    return m.reply('✅ Cache reset. Bot bisa react status lama lagi')
+    return m.reply('✅ Cache reset')
   }
   m.reply(`Status: ${db.on? 'ON ✅' : 'OFF ❌'}\n.autolikesw on/off/reset`)
 }
@@ -47,35 +44,27 @@ setTimeout(async () => {
     let db = JSON.parse(fs.readFileSync(path))
     if (!db.on) return
 
-    // deteksi status baru
     if (msg.message.statusMessage &&!msg.key.fromMe) {
       let statusId = msg.key.id
       let cache = JSON.parse(fs.readFileSync(cacheFile))
 
-      // udah pernah react = skip
-      if (cache.includes(statusId)) return
+      if (cache.includes(statusId)) return // udah react = skip
 
       try {
-        // delay random 2-5 detik biar gak kayak bot
-        await new Promise(r => setTimeout(r, 2000 + Math.random() * 3000))
+        await new Promise(r => setTimeout(r, 2000 + Math.random() * 3000)) // delay 2-5 detik
 
-        // 1. Auto liat
         await sock.readMessages([msg.key])
 
-        // 2. Random emoji dari 8 emoji resmi WA
-        let emoji = EMOJI_LIST[Math.floor(Math.random() * EMOJI_LIST.length)]
-
-        // 3. Auto react
+        
         await sock.sendMessage('status@broadcast', {
-          react: { text: emoji, key: msg.key }
+          react: { text: '❤️', key: msg.key }
         })
 
-        // 4. Simpen ID ke cache
         cache.push(statusId)
         fs.writeFileSync(cacheFile, JSON.stringify(cache))
 
         let nomor = msg.key.participant? msg.key.participant.split('@')[0] : msg.key.remoteJid.split('@')[0]
-        console.log(`[AUTO SW] ${nomor} -> ${emoji}`)
+        console.log(`[AUTO SW] ${nomor} -> ❤️ LIKE`)
 
       } catch(e) {
         console.log('[AUTO SW] Error:', e.message)
