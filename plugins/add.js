@@ -10,7 +10,8 @@ let handler = async (m, { sock, text }) => {
 `👥 *ADD MEMBER*
 
 Contoh:
-${global.prefix}add 628123456789`
+${global.prefix}add 628123456789
+`
     )
   }
 
@@ -162,4 +163,10 @@ ${failed.map(v => `• @${v.num} (${v.reason})`).join("\n")}`
 }
 
 handler.command = ["add"]
-handler.tags = ["group
+handler.tags = ["group"]
+handler.help = ["add 628xxxx"]
+
+handler.group = true
+handler.botAdmin = true
+
+module.exports = handler
