@@ -20,32 +20,35 @@ setInterval(() => {
 }, 3600000)
 
 let autoai = async (m, sock) => {
-  if (!m?.message || m.key.fromMe) return
-  let db = JSON.parse(fs.readFileSync(path))
-  if (!db.on) return
-
-  let text = m.body || ''
-  let isGroup = m.isGroup
-  let botId = sock.user.id // langsung pake, gausah split + decode
-  let userId = m.sender
-
-  let trigger = false
-  if (!isGroup) trigger = true
-  else {
-    let mention = m.mentionedJid || []
-    let quoted = m.quoted
-    // pake.some biar aman, gak usah jidDecode
-    let botMentioned = mention.some(jid => jid === botId || jid?.split('@')[0] === botId?.split('@')[0])
-    let replyBot = quoted && quoted.sender === botId
-    if (botMentioned || replyBot || /bot|ai/i.test(text)) {
-      trigger = true
-    }
-  }
-  if (!trigger) return
-
   try {
+    if (!m?.message || m.key.fromMe) return
+    let db = JSON.parse(fs.readFileSync(path))
+    if (!db.on) return
+
+    let text = m.body || m.msg?.text || m.msg?.caption || ''
+    let isGroup = m.isGroup
+    let botId = sock.user.id
+    let botNumber = botId.split('@')[0]
+    let userId = m.sender
+
+    // Cek trigger - lebih longgar biar pasti nyantol
+    let trigger = false
+    if (!isGroup) trigger = true
+    else {
+      let mention = m.mentionedJid || []
+      let quoted = m.quoted
+      let botMentioned = mention.some(jid => jid && jid.includes(botNumber))
+      let replyBot = quoted && quoted.sender && quoted.sender.includes(botNumber)
+      let panggilNama = /bot|ai|assalam/i.test(text.toLowerCase())
+
+      trigger = botMentioned || replyBot || panggilNama
+    }
+
+    if (!trigger) return
+    console.log(`[AUTO AI] Triggered by ${userId.split('@')[0]}: ${text.slice(0,30)}`)
+
     await sock.sendPresenceUpdate('composing', m.chat)
-    await new Promise(r => setTimeout(r, 800 + Math.random() * 700))
+    await new Promise(r => setTimeout(r, 500 + Math.random() * 500))
 
     let historyDB = JSON.parse(fs.readFileSync(historyPath))
     if (!historyDB[userId]) historyDB[userId] = []
@@ -54,13 +57,19 @@ let autoai = async (m, sock) => {
     if (history.length > 10) history.shift()
 
     let jawaban = await aiGroq(history, userId)
+    if (!jawaban) {
+      console.log('[AUTO AI] Groq return null')
+      return
+    }
+
     history.push({ role: 'assistant', content: jawaban, time: Date.now() })
     historyDB[userId] = history
     fs.writeFileSync(historyPath, JSON.stringify(historyDB))
 
     await sock.sendMessage(m.chat, { text: jawaban }, { quoted: m })
+    console.log(`[AUTO AI] Sent: ${jawaban.slice(0,30)}...`)
   } catch(e) {
-    // error diem aja
+    console.log('[AUTO AI] Fatal Error:', e.message)
   }
 }
 
@@ -70,17 +79,19 @@ async function aiGroq(history, userId) {
   const GROQ_KEY = global.groqApiKey
 
   let defaultReplies = [
-    'Lagi mikir dulu bang, ntar gue bales 😅',
-    'Hmm menarik... tapi otak gue nge-lag dikit',
-    'Gue paham maksud lu, tapi lagi blank nih wkwk',
-    'Bentar bang, lagi loading... *loading 99%*',
-    'Udah gue cerna, tapi jawabannya ketelen wkwk'
+    'Lagi mikir dulu bang 😅',
+    'Hmm otak gue nge-lag dikit',
+    'Bentar bang, loading 99%',
+    'Gue paham, tapi jawabannya ketelen wkwk'
   ]
 
-  if (!GROQ_KEY) return defaultReplies[Math.floor(Math.random() * defaultReplies.length)]
+  if (!GROQ_KEY) {
+    console.log('[AUTO AI] groqApiKey kosong')
+    return defaultReplies[Math.floor(Math.random() * defaultReplies.length)]
+  }
 
   let messages = [
-    {role: 'system', content: `Kamu ${botName}, AI assistant ramah, lucu, asik, suka tante Tante. Jawab singkat padat bahasa Indonesia gaul max 3 baris`}
+    {role: 'system', content: `Kamu ${botName}, AI assistant ramah. Jawab singkat padat bahasa Indonesia gaul max 3 baris`}
   ]
 
   history.slice(-8, -1).forEach(h => {
@@ -104,6 +115,7 @@ async function aiGroq(history, userId) {
 
     return res.data.choices[0].message.content.trim()
   } catch (e) {
+    console.log('[AUTO AI] Groq Error:', e.response?.status || e.code)
     return defaultReplies[Math.floor(Math.random() * defaultReplies.length)]
   }
 }
