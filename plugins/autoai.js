@@ -1,69 +1,257 @@
-let handler = async (m, { sock, text, isAdmin, isOwner }) => {
-  let chat = global.db.data.chats[m.chat] = global.db.data.chats[m.chat] || {}
-  chat.autoai = chat.autoai || {}
-  chat.autoai.history = chat.autoai.history || {}
+const fs = require("fs")
+const path = require("path")
+const axios = require("axios")
 
-  if (/on|enable|true/i.test(text)) {
-    chat.autoai.status = true
-    return m.reply(`✅ AutoAI On`)
-  }
-  else if (/off|disable|false/i.test(text)) {
-    chat.autoai.status = false
-    return m.reply('❌ AutoAI DIMATIKAN')
-  }
-  else if (/reset/i.test(text)) {
-    chat.autoai.history = {}
-    return m.reply('✅ History AutoAI dihapus. Bot amnesia wkwk')
-  }
-  else {
-    let status = chat.autoai.status? 'AKTIF ✅' : 'MATI ❌'
-    return m.reply(`Status: ${status}\n.autoai on/off/reset`)
-  }
+
+const db = path.join(process.cwd(), "database")
+const cacheFile = path.join(db, "cache.js")
+
+
+if (!fs.existsSync(db)) {
+  fs.mkdirSync(db)
 }
 
-handler.help = ['autoai on/off/reset']
-handler.tags = ['tools']
-handler.command = ['autoai']
-// ga pake handler.group = true biar bisa di PC juga
 
-handler.before = async function(m, { sock }) {
-  let chat = global.db.data.chats[m.chat] || {}
-  if (!chat.autoai?.status) return
-  if (m.key.fromMe) return
-  if (!m.text) return
+if (!fs.existsSync(cacheFile)) {
+  fs.writeFileSync(
+    cacheFile,
+`module.exports = {
+  autoAI: false,
+  historyAI: {}
+}`
+  )
+}
 
-  let botNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net'
-  let isReply = m.quoted && m.quoted.sender === botNumber
-  let isMention = m.mentionedJid && m.mentionedJid.includes(botNumber)
-  let isTrigger = /bot\s*oy|bot\s*p|${global.packname}/i.test(m.text || '')
 
-  if (!isReply &&!isMention &&!isTrigger) return
+let cache = require(cacheFile)
 
-  let userId = m.sender
-  chat.autoai.history[userId] = chat.autoai.history[userId] || []
-  let history = chat.autoai.history[userId]
 
-  // Simpan chat user
-  history.push({ role: 'user', content: m.text })
-  if (history.length > 12) history.shift() // simpan 6 chat bolak-balik
+function saveCache() {
+  fs.writeFileSync(
+    cacheFile,
+    "module.exports = " +
+    JSON.stringify(cache, null, 2)
+  )
+}
 
-  let prompt = `Kamu adalah ${global.packname}, bot WhatsApp yang yapping, ngeselin, roasting dikit, tapi lucu.
-  Jawab singkat max 2 kalimat, bahasa gaul Indonesia. Ingat chat sebelumnya.`
+
+
+function getMenu() {
 
   try {
-    let res = await fetch(`https://api.ikyzapi.com/ai/gpt?text=${encodeURIComponent(prompt + '\nUser: ' + m.text)}&apikey=ikyzapi`)
-    let json = await res.json()
 
-    let reply = json.result || json.data || 'Lah API nya ngambek bang wkwk'
+    return fs.readFileSync(
+      path.join(process.cwd(), "menu.js"),
+      "utf-8"
+    )
 
-    // Simpan jawaban bot
-    history.push({ role: 'assistant', content: reply })
+  } catch {
 
-    await sock.sendMessage(m.chat, { text: reply }, { quoted: m })
-  } catch(e) {
-    console.log(e)
-    await sock.sendMessage(m.chat, { text: 'API Iky error, otak gue bluescreen wkwk' }, { quoted: m })
+    return "menu.js tidak ditemukan"
+
   }
+
 }
 
+
+
+
+let handler = async (m, { sock, text }) => {
+
+
+  if (!text) {
+
+    return m.reply(
+      `AutoAI Global : ${cache.autoAI ? "ON" : "OFF"}
+
+Contoh:
+.autoai on
+.autoai off`
+    )
+
+  }
+
+
+
+  if (text.toLowerCase() === "on") {
+
+    cache.autoAI = true
+    saveCache()
+
+    return m.reply(
+      "AutoAI global aktif ✅\nSemua grup & private"
+    )
+
+  }
+
+
+
+  if (text.toLowerCase() === "off") {
+
+    cache.autoAI = false
+    cache.historyAI = {}
+    saveCache()
+
+    return m.reply(
+      "AutoAI global mati ❌"
+    )
+
+  }
+
+
+}
+
+
+
+handler.command = ["autoai"]
+handler.help = ["autoai on/off"]
+handler.tags = ["ai"]
+
+
 module.exports = handler
+
+
+
+
+
+handler.before = async (m,{sock}) => {
+
+
+  if (!cache.autoAI) return
+  if (!m.text) return
+  if (m.fromMe) return
+
+
+
+  let bot =
+  sock.user.id.split(":")[0] +
+  "@s.whatsapp.net"
+
+
+
+  let trigger =
+    m.mentionedJid?.includes(bot) ||
+    m.quoted?.sender === bot ||
+    m.text.toLowerCase().startsWith("bot")
+
+
+
+  if (!trigger) return
+
+
+
+  let id = m.chat
+
+
+
+  if (!cache.historyAI[id])
+    cache.historyAI[id] = []
+
+
+
+  cache.historyAI[id].push({
+    role:"user",
+    content:m.text
+  })
+
+
+
+  if(cache.historyAI[id].length > 15)
+    cache.historyAI[id].shift()
+
+
+
+  try {
+
+
+
+    let menu = getMenu()
+
+
+
+    let res = await axios.get(
+      "https://api.siputzx.my.id/api/ai/chat",
+      {
+        params:{
+
+          message:m.text,
+
+
+          history:
+          JSON.stringify(
+            cache.historyAI[id]
+          ),
+
+
+          system:
+`
+Nama kamu ${global.packname || "AI"}.
+
+Kamu adalah AI assistant WhatsApp.
+
+Kamu punya akses fitur bot dari menu.js:
+
+${menu}
+
+
+Aturan:
+- Jika user tanya fitur bot, cek menu.js.
+- Kasih contoh command yang benar.
+- Jangan bikin command palsu.
+- Kalau user tanya gambar, arahkan ke command image jika ada.
+- Jawab santai bahasa Indonesia.
+- Jangan spam.
+
+`
+        },
+
+        timeout:30000
+
+      }
+    )
+
+
+
+    let reply =
+    res.data.result ||
+    res.data.response ||
+    res.data.message ||
+    "AI tidak menjawab"
+
+
+
+    cache.historyAI[id].push({
+
+      role:"assistant",
+      content:reply
+
+    })
+
+
+    saveCache()
+
+
+
+    await sock.sendMessage(
+      id,
+      {
+        text:reply
+      },
+      {
+        quoted:m
+      }
+    )
+
+
+
+  } catch(e) {
+
+    console.log(
+      "AUTOAI ERROR:",
+      e.message
+    )
+
+  }
+
+
+}
