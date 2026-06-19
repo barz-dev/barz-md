@@ -1,3 +1,4 @@
+
 const fs = require('fs')
 const path = './database/autolike.json'
 const cacheFile = './database/swcache.json'
