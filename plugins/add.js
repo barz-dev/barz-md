@@ -1,52 +1,106 @@
-let handler = async (m, { sock, args, isAdmin, isOwner }) => {
-    // 1. Cek grup
-    if (!m.isGroup) return sock.sendMessage(m.chat, { text: '❌ Khusus grup!' })
+let handler = async (m, { sock, text }) => {
+  if (!m.isOwner && !m.isAdmin) {
+    return m.reply("Khusus admin!")
+  }
 
-    // 2. Cek admin
-    if (!isAdmin &&!isOwner) return sock.sendMessage(m.chat, { text: '❌ Cuma admin/owner!' })
+  let number = ""
 
-    // 3. Cek nomor
-    if (!args[0]) return sock.sendMessage(m.chat, { text: '❌ Format:.add 62851xxx' })
+  if (m.mentionedJid?.[0]) {
+    number = m.mentionedJid[0].split("@")[0]
 
-    let number = args[0].replace(/[^0-9]/g, '')
-    if (number.length < 10) return sock.sendMessage(m.chat, { text: '❌ Nomor kependekan!' })
+  } else if (m.quoted?.sender) {
+    number = m.quoted.sender.split("@")[0]
 
-    let jid = number + '@s.whatsapp.net'
+  } else if (text) {
+    number = text.replace(/[^\d]/g, "")
+  }
 
-    try {
-        // 4. Ambil data grup
-        let groupMetadata = await sock.groupMetadata(m.chat)
-        let participants = groupMetadata.participants.map(v => v.id)
+  if (!number || number.length < 7) {
+    return m.reply(
+      `*Example:*\n${global.prefix}add 628123456789`
+    )
+  }
 
-        // 5. Cek bot admin
-        let botJid = sock.user.id
-        let botAdmin = groupMetadata.participants.find(p => p.id == botJid)?.admin
-        if (!botAdmin) return sock.sendMessage(m.chat, { text: '❌ Bot belum jadi admin!' })
+  const jid = number + "@s.whatsapp.net"
 
-        // 6. Cek udah di grup
-        if (participants.includes(jid)) return sock.sendMessage(m.chat, { text: '❌ Orang itu udah di grup!' })
+  try {
+    // cek nomor wa
+    const check = await sock.onWhatsApp(number)
 
-        // 7. Cek nomor WA aktif
-        let [cek] = await sock.onWhatsApp(jid)
-        if (!cek?.exists) return sock.sendMessage(m.chat, { text: '❌ Nomor gak daftar WA!' })
-
-        // 8. Eksekusi add
-        await sock.groupParticipantsUpdate(m.chat, [jid], 'add')
-        await sock.sendMessage(m.chat, {
-            text: `✅ Berhasil add @${number}`,
-            mentions: [jid]
-        })
-
-    } catch (e) {
-        // 9. Kalo error, kasih tau errornya apa
-        console.log('ERROR ADD:', e)
-        await sock.sendMessage(m.chat, {
-            text: `☢️ Error!\n${e.message}\n\nPenyebab umum:\n1. Nomor privasi\n2. Baru ganti nomor\n3. Kena limit add`
-        })
+    if (!check || !check.length) {
+      return m.reply("Nomor tidak terdaftar di WhatsApp!")
     }
+
+    // cek member grup
+    const meta = await sock.groupMetadata(m.chat)
+
+    const already = meta.participants.find(
+      v => v.id === jid
+    )
+
+    if (already) {
+      return m.reply("User sudah ada di grup!")
+    }
+
+    // coba add langsung
+    const res = await sock.groupParticipantsUpdate(
+      m.chat,
+      [jid],
+      "add"
+    )
+
+    const status = String(res?.[0]?.status || "")
+
+    if (status === "200") {
+      return sock.sendMessage(
+        m.chat,
+        {
+          text: `✅ Berhasil menambahkan @${number}`,
+          mentions: [jid]
+        },
+        { quoted: m.verifiedQuoted }
+      )
+    }
+
+    // fallback kirim invite
+    try {
+      const code = await sock.groupInviteCode(m.chat)
+
+      await sock.groupParticipantsUpdate(
+        m.chat,
+        [jid],
+        "invite"
+      ).catch(() => {})
+
+      return sock.sendMessage(
+        m.chat,
+        {
+          text:
+`⚠️ Tidak bisa add langsung.
+
+Kemungkinan privasi target membatasi penambahan grup.
+
+Link undangan:
+https://chat.whatsapp.com/${code}`
+        },
+        { quoted: m.verifiedQuoted }
+      )
+
+    } catch {}
+
+    return m.reply("Gagal menambahkan anggota.")
+
+  } catch (e) {
+    console.error("ADD ERROR:", e)
+    m.reply("Terjadi kesalahan saat menambahkan anggota.")
+  }
 }
 
-handler.command = ['add', 'tambah']
+handler.command = ["add"]
+handler.tags = ["group"]
+handler.help = ["add @user / nomor"]
+
 handler.group = true
-handler.admin = true
+handler.botAdmin = true
+
 module.exports = handler
