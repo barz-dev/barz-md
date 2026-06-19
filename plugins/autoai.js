@@ -24,6 +24,7 @@ setInterval(() => {
   } catch(e) {}
 }, 3600000)
 
+// COMMAND HANDLER
 let handler = async (m, { args, isOwner }) => {
   if (!isOwner) return m.reply('Khusus Own doang')
 
@@ -32,48 +33,45 @@ let handler = async (m, { args, isOwner }) => {
   if (args[0] === 'on') {
     db.on = true
     fs.writeFileSync(path, JSON.stringify(db))
-    return m.reply('Done Tuan')
+    return m.reply('✅ Done Tuan')
   }
 
   if (args[0] === 'off') {
     db.on = false
     fs.writeFileSync(path, JSON.stringify(db))
-    return m.reply('Done Tuan')
+    return m.reply('❌ Done Om')
   }
 
   if (args[0] === 'clear') {
     fs.writeFileSync(historyPath, '{}')
-    return m.reply('Done Tuan ✅ History AI dihapus')
+    return m.reply('✅ History AI dihapus Tuan')
   }
 
   m.reply(`Status: ${db.on? 'ON ✅' : 'OFF ❌'}\n.autoai on/off/clear`)
 }
 handler.command = ['autoai']
 handler.owner = true
-module.exports = handler
 
-// Listener auto AI
-setTimeout(async () => {
-  let sock = global.sock // PAKE SOCK SESUAI LU
-  if (!sock) return console.log('[AUTO AI] Gagal ambil sock')
-
-  sock.ev.on('messages.upsert', async ({ messages }) => {
-    let msg = messages[0]
-    if (!msg?.message || msg.key.fromMe) return
+// LISTENER FUNCTION
+let autoai = async (m, sock) => {
+  try {
+    if (!m?.message || m.key.fromMe) return
 
     let db = JSON.parse(fs.readFileSync(path))
     if (!db.on) return
 
-    let text = msg.message.conversation || msg.message.extendedTextMessage?.text || ''
-    let isGroup = msg.key.remoteJid.endsWith('@g.us')
+    let text = m.message.conversation || m.message.extendedTextMessage?.text || ''
+    if (!text) return
+
+    let isGroup = m.key.remoteJid.endsWith('@g.us')
     let botId = sock.user.id.split(':')[0] + '@s.whatsapp.net'
-    let userId = msg.key.participant || msg.key.remoteJid
+    let userId = m.key.participant || m.key.remoteJid
 
     let trigger = false
     if (!isGroup) trigger = true // PC auto jawab
     else {
-      let mention = msg.message.extendedTextMessage?.contextInfo?.mentionedJid || []
-      let quoted = msg.message.extendedTextMessage?.contextInfo?.stanzaId
+      let mention = m.message.extendedTextMessage?.contextInfo?.mentionedJid || []
+      let quoted = m.message.extendedTextMessage?.contextInfo?.stanzaId
       if (mention.includes(botId)) trigger = true // di tag
       else if (quoted) trigger = true // di reply
       else if (/bot/i.test(text)) trigger = true // ada kata bot
@@ -81,52 +79,53 @@ setTimeout(async () => {
 
     if (!trigger) return
 
-    try {
-      await sock.sendPresenceUpdate('composing', msg.key.remoteJid)
-      await new Promise(r => setTimeout(r, 1500 + Math.random() * 1000))
+    await sock.sendPresenceUpdate('composing', m.key.remoteJid)
+    await new Promise(r => setTimeout(r, 1500 + Math.random() * 1000))
 
-      let historyDB = JSON.parse(fs.readFileSync(historyPath))
-      if (!historyDB[userId]) historyDB[userId] = []
-      let history = historyDB[userId]
+    let historyDB = JSON.parse(fs.readFileSync(historyPath))
+    if (!historyDB[userId]) historyDB[userId] = []
+    let history = historyDB[userId]
 
-      history.push({ role: 'user', content: text, time: Date.now() })
-      if (history.length > 10) history.shift()
+    history.push({ role: 'user', content: text, time: Date.now() })
+    if (history.length > 10) history.shift()
 
-      let jawaban = await aiLuminai(history, userId)
+    let jawaban = await aiLuminai(history, userId)
 
-      history.push({ role: 'assistant', content: jawaban, time: Date.now() })
-      historyDB[userId] = history
-      fs.writeFileSync(historyPath, JSON.stringify(historyDB))
+    history.push({ role: 'assistant', content: jawaban, time: Date.now() })
+    historyDB[userId] = history
+    fs.writeFileSync(historyPath, JSON.stringify(historyDB))
 
-      await sock.sendMessage(msg.key.remoteJid, { text: jawaban }, { quoted: msg })
-      console.log(`[AUTO AI] ${userId.split('@')[0]}: ${text.slice(0,25)}...`)
-    } catch(e) {
-      console.log('[AUTO AI] Error:', e.message)
-      await sock.sendMessage(msg.key.remoteJid, { text: 'Error AI bang, coba lagi' }, { quoted: msg })
-    }
-  })
-}, 5000)
-
-async function aiLuminai(history, userId) {
-  try {
-    let res = await axios.get('https://luminai.my.id/api/gpt-4', {
-      params: {
-        text: history[history.length-1].content,
-        history: JSON.stringify(history.slice(0, -1).map(h => ({role:h.role,content:h.content}))),
-        uid: userId
-      },
-      timeout: 15000
-    })
-    return res.data.result || 'AI lagi error bang'
-  } catch {
-    let res = await axios.get('https://api.ryzumi.vip/api/ai/gpt-4', {
-      params: {
-        text: history[history.length-1].content,
-        history: JSON.stringify(history.slice(0, -1).map(h => ({role:h.role,content:h.content}))),
-        user: userId
-      },
-      timeout: 15000
-    })
-    return res.data.result || 'AI lagi error bang'
+    await sock.sendMessage(m.key.remoteJid, { text: jawaban }, { quoted: m })
+    console.log(`[AUTO AI] ${userId.split('@')[0]}: ${text.slice(0,25)}...`)
+  } catch(e) {
+    console.log('[AUTO AI] Error listener:', e.message)
   }
 }
+
+// API AI BARU - UDAH FIX
+async function aiLuminai(history, userId) {
+  try {
+    let messages = [
+      {role: 'system', content: 'Kamu asisten WhatsApp yang bernama ${global.packname} . jawab dengan awalan nama dulu ${global.packname} :, lucu, pake bahasa gaul Indonesia'}
+    ]
+
+    let recent = history.slice(-8).map(h => ({role: h.role, content: h.content}))
+    messages.push(...recent)
+
+    let res = await axios.post('https://api.gptgo.ai/v1/chat/completions', {
+      messages: messages,
+      model: 'gpt-3.5-turbo'
+    }, {
+      headers: {'Content-Type': 'application/json'},
+      timeout: 15000
+    })
+
+    return res.data.choices[0].message.content || 'AI lagi error bang'
+  } catch(e) {
+    console.log('[AUTO AI] Error API:', e.response?.data || e.message)
+    return 'AI lagi down bang, coba 1 menit lagi'
+  }
+}
+
+module.exports = autoai
+module.exports.command = handler
