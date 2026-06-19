@@ -363,12 +363,10 @@ ${hasil.join('\n')}
 📄 *HTML Deface terupload ke:* ${target}/index.html
 
 ⚠️ *PERINGATAN:*
-• Ini REAL DEFACE, bukan simulasi.
+
 • Website target telah dimodifikasi.
 • Gunakan hanya untuk testing website sendiri.
-• Deface tanpa izin = ILEGAL.
-
-🏴‍☠️ TEXAS VIP — MR. YOMZZ`
+• Deface tanpa izin = ILEGAL.`
 
     await m.reply(pesan)
 
