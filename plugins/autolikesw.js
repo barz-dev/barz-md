@@ -2,37 +2,11 @@ const fs = require('fs')
 const path = './database/autolike.json'
 const cacheFile = './database/swcache.json'
 
-// bikin DB + cache otomatis
 if (!fs.existsSync('./database')) fs.mkdirSync('./database', { recursive: true })
 if (!fs.existsSync(path)) fs.writeFileSync(path, '{"on":false}')
 if (!fs.existsSync(cacheFile)) fs.writeFileSync(cacheFile, '[]')
 
-// COMMAND HANDLER
-let command = async (m, { args, isOwner }) => {
-  if (!isOwner) return m.reply('Owner only bang')
-
-  let db = JSON.parse(fs.readFileSync(path))
-
-  if (args[0] === 'on') {
-    db.on = true
-    fs.writeFileSync(path, JSON.stringify(db))
-    return m.reply('✅ Done Tuan')
-  }
-  if (args[0] === 'off') {
-    db.on = false
-    fs.writeFileSync(path, JSON.stringify(db))
-    return m.reply('❌ Done Tuan')
-  }
-  if (args[0] === 'reset') {
-    fs.writeFileSync(cacheFile, '[]')
-    return m.reply('✅ Cache reset')
-  }
-  m.reply(`Status: ${db.on? 'ON ✅' : 'OFF ❌'}\n.autolikesw on/off/reset`)
-}
-command.command = ['autolikesw']
-command.owner = true
-
-// LISTENER FUNCTION - INI YG DIPANGGIL DARI INDEX.JS
+// LISTENER AUTO LIKE SW
 let autolike = async (m, sock) => {
   try {
     if (!m?.message) return
@@ -54,6 +28,7 @@ let autolike = async (m, sock) => {
       })
 
       cache.push(statusId)
+      if (cache.length > 500) cache.shift() // jaga biar gak gede bgt
       fs.writeFileSync(cacheFile, JSON.stringify(cache))
 
       let nomor = m.key.participant? m.key.participant.split('@')[0] : m.key.remoteJid.split('@')[0]
@@ -65,4 +40,3 @@ let autolike = async (m, sock) => {
 }
 
 module.exports = autolike
-module.exports.command = command
