@@ -26,7 +26,7 @@ let autoai = async (m, sock) => {
 
   let text = m.body || ''
   let isGroup = m.isGroup
-  let botId = sock.user.id.split(':')[0] + '@s.whatsapp.net'
+  let botId = sock.user.id // langsung pake, gausah split + decode
   let userId = m.sender
 
   let trigger = false
@@ -34,7 +34,10 @@ let autoai = async (m, sock) => {
   else {
     let mention = m.mentionedJid || []
     let quoted = m.quoted
-    if (mention.includes(botId) || (quoted && quoted.sender === botId) || /bot|ai/i.test(text)) {
+    // pake.some biar aman, gak usah jidDecode
+    let botMentioned = mention.some(jid => jid === botId || jid?.split('@')[0] === botId?.split('@')[0])
+    let replyBot = quoted && quoted.sender === botId
+    if (botMentioned || replyBot || /bot|ai/i.test(text)) {
       trigger = true
     }
   }
@@ -56,7 +59,9 @@ let autoai = async (m, sock) => {
     fs.writeFileSync(historyPath, JSON.stringify(historyDB))
 
     await sock.sendMessage(m.chat, { text: jawaban }, { quoted: m })
-  } catch(e) {}
+  } catch(e) {
+    // error diem aja
+  }
 }
 
 async function aiGroq(history, userId) {
@@ -75,7 +80,7 @@ async function aiGroq(history, userId) {
   if (!GROQ_KEY) return defaultReplies[Math.floor(Math.random() * defaultReplies.length)]
 
   let messages = [
-    {role: 'system', content: `Kamu ${botName}, AI assistant ramah, asik, lucu. Jawab singkat padat bahasa Indonesia gaul max 3 baris`}
+    {role: 'system', content: `Kamu ${botName}, AI assistant ramah, lucu, asik, suka tante Tante. Jawab singkat padat bahasa Indonesia gaul max 3 baris`}
   ]
 
   history.slice(-8, -1).forEach(h => {
@@ -99,7 +104,6 @@ async function aiGroq(history, userId) {
 
     return res.data.choices[0].message.content.trim()
   } catch (e) {
-    // Kalo error/limit, pake jawaban default biar gak polos
     return defaultReplies[Math.floor(Math.random() * defaultReplies.length)]
   }
 }
