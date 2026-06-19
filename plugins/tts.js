@@ -6,19 +6,17 @@ let handler = async (m, { sock, text, usedPrefix, command }) => {
   if (!text) throw `Contoh: ${usedPrefix + command} Halo dunia`;
   if (text.length > 500) throw `Teks kepanjangan, maksimal 500 karakter!`;
 
-  // acak bahasa biar suaranya beda-beda
   const langList = ['id', 'en', 'ja', 'ko', 'es', 'fr', 'ar', 'ru'];
   const randomLang = langList[Math.floor(Math.random() * langList.length)];
 
-  const fileName = `./tmp/tts-${Date.now()}.mp3`;
+  const tmpDir = path.join(__dirname, '../tmp');
+  const fileName = path.join(tmpDir, `tts-${Date.now()}.mp3`);
   
   m.reply(`_Sedang membuat audio..._ [${randomLang}]`);
 
   try {
-    // bikin folder tmp kalo belum ada
-    if (!fs.existsSync('./tmp')) fs.mkdirSync('./tmp');
+    if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
 
-    // generate TTS
     const gtts = new gTTS(text, randomLang);
     await new Promise((resolve, reject) => {
       gtts.save(fileName, (err) => {
@@ -27,27 +25,24 @@ let handler = async (m, { sock, text, usedPrefix, command }) => {
       });
     });
 
-    // kirim sebagai voice note
+    // INI YANG DIBENERIN ↓↓
     await sock.sendMessage(m.chat, {
-      audio: { url: fileName },
-      mimetype: 'audio/mpeg',
-      ptt: true // biar jadi voice note, bukan file mp3
+      audio: fs.readFileSync(fileName), // jangan {url: fileName}
+      mimetype: 'audio/mp4', // ganti ke mp4 biar 100% jadi vn
+      ptt: true
     }, { quoted: m });
 
-    // hapus file abis kirim biar ga numpuk
-    setTimeout(() => {
-      if (fs.existsSync(fileName)) fs.unlinkSync(fileName);
-    }, 5000);
+    fs.unlinkSync(fileName); // hapus langsung aja, gak usah setTimeout
 
   } catch (e) {
-    console.log(e);
-    m.reply('Gagal bikin audio, coba lagi atau teksnya kepanjangan.');
+    console.log('ERROR TTS:', e);
+    m.reply('Gagal bikin audio bang: ' + e.message);
   }
 };
 
-handler.help = ['tts'];
+handler.help = ['tts <teks>'];
 handler.tags = ['tools'];
-handler.command = /^(tts|ngomong)$/i;
+handler.command = ['tts','ngomong']; // array lebih aman
 handler.limit = true;
 
 module.exports = handler;
