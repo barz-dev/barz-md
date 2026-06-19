@@ -7,7 +7,6 @@ if (!fs.existsSync('./database')) fs.mkdirSync('./database', { recursive: true }
 if (!fs.existsSync(path)) fs.writeFileSync(path, '{"on":false}')
 if (!fs.existsSync(historyPath)) fs.writeFileSync(historyPath, '{}')
 
-// Auto clean history tiap 1 jam
 setInterval(() => {
   try {
     let historyDB = JSON.parse(fs.readFileSync(historyPath))
@@ -20,10 +19,8 @@ setInterval(() => {
   } catch(e) {}
 }, 3600000)
 
-// Listener auto AI
 let autoai = async (m, sock) => {
   if (!m?.message || m.key.fromMe) return
-
   let db = JSON.parse(fs.readFileSync(path))
   if (!db.on) return
 
@@ -32,22 +29,13 @@ let autoai = async (m, sock) => {
   let botId = sock.user.id.split(':')[0] + '@s.whatsapp.net'
   let userId = m.sender
 
-  // CEK TRIGGER - UDAH FIX REPLY BOT DOANG
   let trigger = false
-  if (!isGroup) {
-    trigger = true // PC auto jawab
-  } else {
+  if (!isGroup) trigger = true
+  else {
     let mention = m.mentionedJid || []
     let quoted = m.quoted
-
-    if (mention.includes(botId)) {
-      trigger = true // di tag bot
-    }
-    else if (quoted && quoted.sender === botId) {
-      trigger = true // reply chat dari bot doang
-    }
-    else if (/bot|ai/i.test(text)) {
-      trigger = true // ada kata bot/ai
+    if (mention.includes(botId) || (quoted && quoted.sender === botId) || /bot|ai/i.test(text)) {
+      trigger = true
     }
   }
   if (!trigger) return
@@ -59,12 +47,10 @@ let autoai = async (m, sock) => {
     let historyDB = JSON.parse(fs.readFileSync(historyPath))
     if (!historyDB[userId]) historyDB[userId] = []
     let history = historyDB[userId]
-
     history.push({ role: 'user', content: text, time: Date.now() })
     if (history.length > 10) history.shift()
 
     let jawaban = await aiLuminai(history, userId)
-
     history.push({ role: 'assistant', content: jawaban, time: Date.now() })
     historyDB[userId] = history
     fs.writeFileSync(historyPath, JSON.stringify(historyDB))
@@ -73,45 +59,26 @@ let autoai = async (m, sock) => {
     console.log(`[AUTO AI] ${userId.split('@')[0]}: ${text.slice(0,30)}...`)
   } catch(e) {
     console.log('[AUTO AI] Error:', e.message)
-    await sock.sendMessage(m.chat, { text: 'AI lagi error bang, coba lagi' }, { quoted: m })
   }
 }
 
-// API STABIL + CEPET + PUBLIC
 async function aiLuminai(history, userId) {
   const text = history[history.length-1].content
-  const messages = [
-    {role: 'system', content: 'Kamu AI assistant ramah bernama ${global.packname}, jawab singkat padat bahasa Indonesia gaul, max 3 baris'},
- ...history.slice(0, -1).map(h => ({role: h.role, content: h.content})),
-    {role: 'user', content: text}
-  ]
+  const botName = global.packname || 'AI Bot'
+  let prompt = `Kamu ${botName}, AI assistant ramah. Jawab singkat padat bahasa Indonesia gaul max 3 baris\n`
+  history.slice(-8, -1).forEach(h => {
+    prompt += `${h.role === 'user'? 'User' : botName}: ${h.content}\n`
+  })
+  prompt += `User: ${text}\n${botName}:`
 
-  // API 1: PuterJS - paling stabil
   try {
-    const res = await axios.post('https://api.puter.com/v1/chat/completions', {
-      model: 'gpt-4o-mini',
-      messages: messages,
-      max_tokens: 400
-    }, {timeout: 8000})
-    if (res.data.choices?.[0]?.message?.content)
-      return res.data.choices[0].message.content.trim()
-  } catch {}
-
-  // API 2: OpenRouter free
-  try {
-    const res = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
-      model: 'meta-llama/llama-3.1-8b-instruct:free',
-      messages: messages,
-      max_tokens: 400
-    }, {
-      headers: {'HTTP-Referer': 'https://github.com'},
-      timeout: 8000
-    })
-    if (res.data.choices?.[0]?.message?.content)
-      return res.data.choices[0].message.content.trim()
-  } catch {}
-
-  return 'AI lagi ngelag bang 😅 coba lagi 3 detik'
+    const url = `https://api.siputzx.my.id/api/ai/glm47flash?prompt=${encodeURIComponent(prompt)}`
+    const res = await axios.get(url, { timeout: 15000 })
+    if (res.data.status && res.data.response) return res.data.response.trim()
+    throw new Error('Response kosong')
+  } catch (e) {
+    console.log('[GLM47FLASH] Error:', e.message)
+    return 'AI lagi ngelag bang, coba lagi bentar 😅'
+  }
 }
-
 module.exports = autoai
