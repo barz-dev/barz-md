@@ -11,7 +11,6 @@ if (!fs.existsSync('./database')) fs.mkdirSync('./database', { recursive: true }
 if (!fs.existsSync(path)) fs.writeFileSync(path, '{"on":true}')
 
 let autoai = async (m, sock) => {
-  // FIX: Cek m dan sender dengan aman
   let senderDisplay = 'unknown'
   try {
     if (m?.sender) {
@@ -39,8 +38,9 @@ let autoai = async (m, sock) => {
 
     await sock.sendPresenceUpdate('composing', m.chat)
 
+    // YANG DIUBAH CUMA INI -> GANTI MODELNYA DOANG
     const res = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
-      model: 'llama-3.1-70b-versatile',
+      model: 'llama3-70b-8192',  // <-- INI DOANG YANG DIGANTI
       messages: [
         {role: 'system', content: 'Kamu AI ramah. Jawab 1 baris bahasa Indonesia gaul'},
         {role: 'user', content: text}
@@ -63,6 +63,9 @@ let autoai = async (m, sock) => {
 
   } catch(e) {
     console.log('[AUTO AI] ERROR:', e.response?.status || e.code, e.message)
+    if (e.response?.data) {
+      console.log('[AUTO AI] Detail:', JSON.stringify(e.response.data).slice(0,200))
+    }
   }
 }
 
