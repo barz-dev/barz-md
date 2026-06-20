@@ -1,8 +1,8 @@
 let fetch = require('node-fetch')
-let { generateWAMessageFromContent, proto } = require('@barz-dev/baileys')
+let { generateWAMessageContent, generateWAMessageFromContent } = require('@whiskeysockets/baileys')
 
-let handler = async (m, { sock }) => {
-  let msg = await sock.sendMessage(m.chat, { text: '🔍 Ngacak 10 cecan... Bikin album dulu' }, { quoted: m })
+let handler = async (m, { conn }) => {
+  await conn.sendMessage(m.chat, { text: '🔍 Ngacak 10 cecan... Bikin album' }, { quoted: m })
   
   let endpoints = [
     'https://api.ikyyxd.my.id/random/cecan/china',
@@ -11,55 +11,52 @@ let handler = async (m, { sock }) => {
     'https://api.ikyyxd.my.id/random/cecan/korea'
   ]
 
-  let images = []
+  let mediaArray = []
   
   for (let i = 0; i < 10; i++) {
     let url = endpoints[Math.floor(Math.random() * endpoints.length)]
     let negara = url.split('/').pop()
 
     try {
-      let res = await fetch(url, { timeout: 20000, headers: { 'User-Agent': 'Mozilla/5.0' } })
+      let res = await fetch(url, { 
+        timeout: 20000,
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+      })
       let buffer = await res.buffer()
       
-      images.push({
-        image: buffer,
-        caption: `my bini barz\ndari: ${negara.toUpperCase()} ${i + 1}/10`
+      // Upload beneran ke server WA biar ada key + thumbnail
+      let mediaMsg = await generateWAMessageContent({ 
+        image: buffer 
+      }, { upload: conn.waUploadToServer })
+      
+      mediaArray.push({
+        imageMessage: {
+          ...mediaMsg.imageMessage,
+          caption: `my bini barz\ndari ${negara.toUpperCase()} ${i + 1}/10`
+        }
       })
       
-      await new Promise(r => setTimeout(r, 700)) // jeda biar gak di limit
+      await new Promise(r => setTimeout(r, 800))
       
     } catch (e) {
       console.log(`Gagal ${negara}:`, e.message)
     }
   }
 
-  if (images.length === 0) return m.reply('Zonk bang, API error semua')
+  if (mediaArray.length === 0) return conn.sendMessage(m.chat, { text: 'Zonk bang, API error' }, { quoted: m })
 
-  // Bikin album message
-  let album = generateWAMessageFromContent(m.chat, proto.Message.fromObject({
+  // Bikin album message yg bener
+  let albumMsg = generateWAMessageFromContent(m.chat, {
     albumMessage: {
-      expectedImageCount: images.length,
-      ...proto.Message.AlbumMessage.fromObject({
-        messages: images.map((img, i) => {
-          let message = proto.Message.fromObject({
-            imageMessage: {
-              mimetype: 'image/jpeg',
-              caption: img.caption,
-              jpegThumbnail: img.image.slice(0, 100) // thumbnail kecil
-            }
-          })
-          return message
-        })
-      })
+      expectedImageCount: mediaArray.length,
+      messages: mediaArray
     }
-  }), { quoted: m }) // <-- ini quoted ke pesan lu
+  }, { quoted: m })
 
-  await sock.relayMessage(m.chat, album.message, { messageId: album.key.id })
+  await conn.relayMessage(m.chat, albumMsg.message, { messageId: albumMsg.key.id })
+  await conn.sendMessage(m.chat, { text: `Selesai! ${mediaArray.length}/10 slide ✅` }, { quoted: m })
 }
 
-handler.help = ['cecan']
-handler.tags = ['random']
 handler.command = ['cecan']
 handler.limit = true
-
 module.exports = handler
