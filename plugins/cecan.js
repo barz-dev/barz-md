@@ -1,9 +1,13 @@
 let fetch = require('node-fetch')
 let { generateWAMessageContent, generateWAMessageFromContent } = require('@barz-dev/baileys')
 
-// PARAMETER: (sock, m) bukan (m, { sock })
-let handler = async (sock, m) => {  
-  await sock.sendMessage(m.chat, { text: '🔍 Ngacak 10 cecan... Bikin album' }, { quoted: m })
+let handler = async (m, { conn }) => {
+  // PAKAI GLOBAL SOCK KALO CONN BERMASALAH
+  const client = conn || global.sock
+  
+  if (!client) return m.reply('❌ Bot error, coba lagi nanti')
+  
+  await client.sendMessage(m.chat, { text: '🔍 Ngacak 10 cecan... Bikin album' }, { quoted: m })
   
   let endpoints = [
     'https://api.ikyyxd.my.id/random/cecan/china',
@@ -27,7 +31,7 @@ let handler = async (sock, m) => {
       
       let mediaMsg = await generateWAMessageContent({ 
         image: buffer 
-      }, { upload: sock.waUploadToServer })
+      }, { upload: client.waUploadToServer })
       
       mediaArray.push({
         imageMessage: {
@@ -44,7 +48,7 @@ let handler = async (sock, m) => {
   }
 
   if (mediaArray.length === 0) {
-    return sock.sendMessage(m.chat, { text: 'Zonk bang, API error semua' }, { quoted: m })
+    return client.sendMessage(m.chat, { text: 'Zonk bang, API error semua' }, { quoted: m })
   }
 
   let albumMsg = generateWAMessageFromContent(m.chat, {
@@ -54,7 +58,7 @@ let handler = async (sock, m) => {
     }
   }, { quoted: m })
 
-  await sock.relayMessage(m.chat, albumMsg.message, { messageId: albumMsg.key.id })
+  await client.relayMessage(m.chat, albumMsg.message, { messageId: albumMsg.key.id })
 }
 
 handler.command = ['cecan']
