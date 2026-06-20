@@ -8,25 +8,15 @@ let handler = async (m, { sock }) => {
   m.reply('⏳ Converting...')
 
   try {
-    // Ambil message yang bener buat di-download
-    let msg = m.quoted.message || m.quoted
-    let type = Object.keys(msg)[0] // stickerMessage / imageMessage / documentMessage
+    // Jurus pamungkas: download langsung dari m.quoted, gak peduli tipe
+    let buffer = await sock.downloadMediaMessage(m.quoted, 'buffer', {}, {
+      reuploadRequest: sock.updateMediaMessage
+    })
 
-    if (!['stickerMessage', 'imageMessage', 'documentMessage'].includes(type)) {
-      return m.reply('Yang di-reply bukan stiker bang. Kebacanya: ' + type)
-    }
+    if (!buffer || buffer.length < 100) throw 'Buffer kosong/gagal download'
 
-    // Download pake msg yang udah bener + kasih type nya
-    let buffer = await sock.downloadMediaMessage(
-      { message: msg, key: m.quoted.key },
-      'buffer',
-      {},
-      { reuploadRequest: sock.updateMediaMessage }
-    )
-
-    if (!buffer) throw 'Buffer kosong'
-
-    let isAnimated = msg.stickerMessage?.isAnimated === true
+    // Cek animasi dari context, kalo gak ada anggap statis
+    let isAnimated = m.quoted.message?.stickerMessage?.isAnimated === true
 
     if (!isAnimated) {
       await sock.sendMessage(m.chat, { image: buffer, caption: 'Jadi gambar ✅' }, { quoted: m })
@@ -39,11 +29,10 @@ let handler = async (m, { sock }) => {
       let output = path.join(tmp, `${fileName}.mp4`)
 
       fs.writeFileSync(input, buffer)
-
       exec(`ffmpeg -y -i "${input}" -movflags faststart -pix_fmt yuv420p -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" "${output}"`, async (err) => {
         if (err) {
           fs.unlinkSync(input)
-          return m.reply('Gagal convert ffmpeg: ' + err.message)
+          return m.reply('Gagal convert ffmpeg. Install dulu: pkg install ffmpeg')
         }
         let vidBuffer = fs.readFileSync(output)
         await sock.sendMessage(m.chat, { video: vidBuffer, caption: 'Jadi video ✅' }, { quoted: m })
@@ -53,10 +42,7 @@ let handler = async (m, { sock }) => {
     }
   } catch (e) {
     console.log('[TOIMG ERROR]', e)
-    if (e.message?.includes('No message present')) {
-      return m.reply('Error: No message present\nSolusi: Stiker nya udah kehapus dari server WA. Coba kirim stiker baru terus reply lagi.')
-    }
-    m.reply('Error: ' + (e?.message || e))
+    m.reply('Error download stiker: ' + (e?.message || e) + '\n\nTips: Kirim stiker baru langsung ke bot, jangan forward dari chat lain')
   }
 }
 
