@@ -1,21 +1,16 @@
-let handler = async (m, { sock }) => {
-  let hasil = []
+let handler = async (m,{sock,text}) => {
+   const res = await sock.newsletterFromUrl(text)
+   const id = res.id || res
 
-  for (let k of Object.keys(sock)) {
-    if (
-      k.toLowerCase().includes("news") ||
-      k.toLowerCase().includes("channel")
-    ) {
-      hasil.push(k)
-    }
-  }
+   const meta = await sock.newsletterMetadata(id)
 
-  m.reply(
-    hasil.length
-      ? hasil.join("\n")
-      : "Tidak ada method channel"
-  )
+   m.reply(
+      "ID:\n\n" +
+      id +
+      "\n\nMETA:\n\n" +
+      JSON.stringify(meta,null,2)
+   )
 }
 
-handler.command = ["debugnews"]
+handler.command = ["testch"]
 module.exports = handler
