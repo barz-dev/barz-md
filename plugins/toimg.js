@@ -1,4 +1,4 @@
-let { downloadContentFromMessage } = require('@badzz88/baileys')
+let { downloadContentFromMessage } = require('@barz-dev/baileys')
 let { exec } = require('child_process')
 let fs = require('fs')
 
