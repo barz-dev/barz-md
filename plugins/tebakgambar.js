@@ -3,6 +3,37 @@ const axios = require('axios')
 let timeout = 60000
 let poin = 100
 
+// Fungsi ngitung seberapa mirip 2 kata
+function similarity(s1, s2) {
+  let longer = s1, shorter = s2
+  if (s1.length < s2.length) [longer, shorter] = [s2, s1]
+  let longerLength = longer.length
+  if (longerLength == 0) return 1.0
+  return (longerLength - editDistance(longer, shorter)) / parseFloat(longerLength)
+}
+
+function editDistance(s1, s2) {
+  s1 = s1.toLowerCase(); s2 = s2.toLowerCase()
+  let costs = []
+  for (let i = 0; i <= s1.length; i++) {
+    let lastValue = i
+    for (let j = 0; j <= s2.length; j++) {
+      if (i == 0) costs[j] = j
+      else {
+        if (j > 0) {
+          let newValue = costs[j - 1]
+          if (s1.charAt(i - 1)!= s2.charAt(j - 1))
+            newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1
+          costs[j - 1] = lastValue
+          lastValue = newValue
+        }
+      }
+    }
+    if (i > 0) costs[s2.length] = lastValue
+  }
+  return costs[s2.length]
+}
+
 let handler = async (m, { sock, command }) => {
   this.tebakgambar = this.tebakgambar || {}
   let id = m.chat
@@ -51,7 +82,6 @@ handler.help = ['tebakgambar', 'nyerah']
 handler.tags = ['game']
 handler.command = ["tebakgambar", "nyerah", "skip"]
 
-// INI KUNCINYA BANG - WAJIB RETURN TRUE
 handler.all = async function(m) {
   if (!m.text) return false
   this.tebakgambar = this.tebakgambar || {}
@@ -59,23 +89,33 @@ handler.all = async function(m) {
   if (!(id in this.tebakgambar)) return false
 
   let [sentMsg, jawaban, poin, timer] = this.tebakgambar[id]
-
-  // Debug: liat di console bot
-  console.log('[TEBAKGAMBAR] Chat:', id, 'Text:', m.text, 'Reply:', m.quoted?.id, 'Target:', sentMsg.key.id)
-
   let isReply = m.quoted?.id === sentMsg.key.id
-  if (!isReply) return false // bukan reply = skip
+  if (!isReply) return false
 
-  if (m.text.toLowerCase().trim() == jawaban) {
+  let userJawab = m.text.toLowerCase().trim().replace(/ /g, '')
+  let realJawab = jawaban.replace(/ /g, '')
+  let mirip = similarity(userJawab, realJawab)
+
+  if (userJawab == realJawab) {
     clearTimeout(timer)
     await m.react('🎉')
     await sock.sendMessage(m.chat, { text: `✅ Benar! Jawaban: *${jawaban}*\n+${poin} Poin` }, { quoted: sentMsg })
     delete this.tebakgambar[id]
-    return true // WAJIB TRUE BIAR KEHAPUS
+    return true
   } else {
     await m.react('❌')
-    await sock.sendMessage(m.chat, { text: `❌ Salah! Coba lagi` }, { quoted: sentMsg })
-    return true // WAJIB TRUE
+
+    // KUNCI: Kalo mirip >70% = mendekati
+    if (mirip >= 0.7) {
+      await sock.sendMessage(m.chat, {
+        text: `🤔 Salah tapi udah mendekati!\nJawaban lu: *${m.text}*\nCoba lagi, dikit lagi!`
+      }, { quoted: sentMsg })
+    } else {
+      await sock.sendMessage(m.chat, {
+        text: `❌ Salah jauh banget 😭\nJawaban lu: *${m.text}*\nCoba pikir lagi!`
+      }, { quoted: sentMsg })
+    }
+    return true
   }
 }
 
