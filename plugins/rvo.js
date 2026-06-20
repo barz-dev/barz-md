@@ -1,38 +1,43 @@
 let handler = async (m, { sock }) => {
-    const quoted = m.quoted;
-    if (!quoted) return m.reply('Reply pesan View Once!');
+  if (!m.quoted) return m.reply('Reply foto/video view once nya bang')
 
-    try {
-        let msg = quoted;
-        let viewOnceMsg = msg.viewOnceMessageV2?.message || 
-                         msg.viewOnceMessage?.message || 
-                         msg.viewOnceMessageV2Extension?.message;
-        
-        if (!viewOnceMsg) return m.reply('❌ Bukan View Once!');
+  let msg = m.quoted.message // INI KUNCINYA
+  let type = Object.keys(msg)[0]
 
-        let type = Object.keys(viewOnceMsg)[0];
-        let media = viewOnceMsg[type];
-        
-        let buffer = await sock.downloadMediaMessage(media);
-        if (!buffer) return m.reply('❌ Gagal download!');
+  // Handle V1, V2, V2Extension
+  let viewOnce = msg.viewOnceMessage?.message ||
+                 msg.viewOnceMessageV2?.message ||
+                 msg.viewOnceMessageV2Extension?.message
 
-        if (type === 'imageMessage') {
-            await sock.sendMessage(m.chat, { image: buffer, caption: media.caption || '' }, { quoted: m });
-        } else if (type === 'videoMessage') {
-            await sock.sendMessage(m.chat, { video: buffer, caption: media.caption || '' }, { quoted: m });
-        } else if (type === 'audioMessage') {
-            await sock.sendMessage(m.chat, { audio: buffer, mimetype: 'audio/mpeg' }, { quoted: m });
-        } else {
-            await sock.sendMessage(m.chat, { document: buffer, fileName: `viewonce_${Date.now()}` }, { quoted: m });
-        }
+  if (!viewOnce) return m.reply('❌ Itu bukan view once / udah kadaluarsa')
 
-    } catch (e) {
-        m.reply('❌ Gagal: ' + e.message);
+  let mediaType = Object.keys(viewOnce)[0]
+  let media = viewOnce[mediaType]
+
+  try {
+    await m.react('⏱️')
+    let buffer = await sock.downloadMediaMessage({ message: viewOnce }, 'buffer')
+    if (!buffer) return m.reply('❌ Gagal download')
+
+    let caption = media.caption || `View Once dari @${m.quoted.sender.split('@')[0]}`
+
+    if (mediaType === 'imageMessage') {
+      await sock.sendMessage(m.chat, { image: buffer, caption }, { quoted: m })
+    } else if (mediaType === 'videoMessage') {
+      await sock.sendMessage(m.chat, { video: buffer, caption }, { quoted: m })
+    } else {
+      await sock.sendMessage(m.chat, { document: buffer, fileName: 'viewonce.bin' }, { quoted: m })
     }
-};
 
-handler.command = ['rvo', 'readvo'];
-handler.tags = ['tools'];
-handler.help = ['rvo'];
+    await m.react('✅')
+  } catch (e) {
+    m.reply('❌ Error: ' + e.message)
+    await m.react('❌')
+  }
+}
 
-module.exports = handler;
+handler.command = ['rvo', 'readvo']
+handler.tags = ['tools']
+handler.help = ['rvo - reply viewonce']
+
+module.exports = handler
