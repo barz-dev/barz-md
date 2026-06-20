@@ -1,8 +1,8 @@
 let fetch = require('node-fetch')
-let { generateWAMessageContent, generateWAMessageFromContent } = require('@whiskeysockets/baileys')
+let { generateWAMessageContent, generateWAMessageFromContent } = require('@barz-dev/baileys')
 
-let handler = async (m, { conn }) => {
-  await conn.sendMessage(m.chat, { text: '🔍 Ngacak 10 cecan... Bikin album' }, { quoted: m })
+let handler = async (m, { sock }) => {
+  await sock.sendMessage(m.chat, { text: '🔍 Ngacak 10 cecan... Bikin album' }, { quoted: m })
   
   let endpoints = [
     'https://api.ikyyxd.my.id/random/cecan/china',
@@ -24,15 +24,15 @@ let handler = async (m, { conn }) => {
       })
       let buffer = await res.buffer()
       
-      // Upload beneran ke server WA biar ada key + thumbnail
+      // Upload ke server WA
       let mediaMsg = await generateWAMessageContent({ 
         image: buffer 
-      }, { upload: conn.waUploadToServer })
+      }, { upload: sock.waUploadToServer }) // ganti jadi sock
       
       mediaArray.push({
         imageMessage: {
           ...mediaMsg.imageMessage,
-          caption: `my bini barz\ndari ${negara.toUpperCase()} ${i + 1}/10`
+          caption: `my bini barz\ndari: ${negara.toUpperCase()} ${i + 1}/10`
         }
       })
       
@@ -43,9 +43,8 @@ let handler = async (m, { conn }) => {
     }
   }
 
-  if (mediaArray.length === 0) return conn.sendMessage(m.chat, { text: 'Zonk bang, API error' }, { quoted: m })
+  if (mediaArray.length === 0) return sock.sendMessage(m.chat, { text: 'Zonk bang, API error semua' }, { quoted: m })
 
-  // Bikin album message yg bener
   let albumMsg = generateWAMessageFromContent(m.chat, {
     albumMessage: {
       expectedImageCount: mediaArray.length,
@@ -53,8 +52,7 @@ let handler = async (m, { conn }) => {
     }
   }, { quoted: m })
 
-  await conn.relayMessage(m.chat, albumMsg.message, { messageId: albumMsg.key.id })
-  await conn.sendMessage(m.chat, { text: `Selesai! ${mediaArray.length}/10 slide ✅` }, { quoted: m })
+  await sock.relayMessage(m.chat, albumMsg.message, { messageId: albumMsg.key.id })
 }
 
 handler.command = ['cecan']
