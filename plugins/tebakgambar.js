@@ -26,32 +26,22 @@ let handler = async (m, { sock, command }) => {
     if (!data.status ||!data.data) return m.reply('API error bang 😭')
 
     let { img, jawaban, deskripsi } = data.data
-
-    // KUNCI: Download jadi buffer dulu biar gak error toString
-    let imgBuffer = await axios.get(img, { responseType: 'arraybuffer' }).then(res => Buffer.from(res.data))
+    let imgBuffer = await axios.get(img, { responseType: 'arraybuffer', timeout: 10000 }).then(res => Buffer.from(res.data))
 
     let caption = `*TEBAK GAMBAR*\n\n${deskripsi}\n\nWaktu: ${timeout/1000} detik\nPoin: ${poin}\n\nReply gambar ini buat jawab!\nKetik.nyerah buat skip`
 
-    let sent = await sock.sendMessage(m.chat, {
-      image: imgBuffer, // pake buffer bukan url
-      caption
-    }, { quoted: m })
+    let sent = await sock.sendMessage(m.chat, { image: imgBuffer, caption }, { quoted: m })
 
-    this.tebakgambar[id] = [
-      sent,
-      jawaban.toLowerCase().trim(),
-      poin,
-      setTimeout(() => {
-        if (this.tebakgambar[id]) {
-          sock.sendMessage(m.chat, { text: `Waktu habis!\nJawaban: *${jawaban}*` }, { quoted: sent })
-          delete this.tebakgambar[id]
-        }
-      }, timeout)
-    ]
+    this.tebakgambar[id] = [sent, jawaban.toLowerCase().trim(), poin, setTimeout(() => {
+      if (this.tebakgambar[id]) {
+        sock.sendMessage(m.chat, { text: `Waktu habis!\nJawaban: *${jawaban}*` }, { quoted: sent })
+        delete this.tebakgambar[id]
+      }
+    }, timeout)]
 
     await m.react('✅')
   } catch (e) {
-    console.log(e)
+    console.log('[TEBAKGAMBAR ERROR]', e)
     await m.react('❌')
     m.reply('Gagal: ' + e.message)
   }
@@ -61,24 +51,31 @@ handler.help = ['tebakgambar', 'nyerah']
 handler.tags = ['game']
 handler.command = ["tebakgambar", "nyerah", "skip"]
 
+// INI KUNCINYA BANG - WAJIB RETURN TRUE
 handler.all = async function(m) {
-  if (!m.text) return
+  if (!m.text) return false
   this.tebakgambar = this.tebakgambar || {}
   let id = m.chat
-  if (!(id in this.tebakgambar)) return
+  if (!(id in this.tebakgambar)) return false
 
   let [sentMsg, jawaban, poin, timer] = this.tebakgambar[id]
+
+  // Debug: liat di console bot
+  console.log('[TEBAKGAMBAR] Chat:', id, 'Text:', m.text, 'Reply:', m.quoted?.id, 'Target:', sentMsg.key.id)
+
   let isReply = m.quoted?.id === sentMsg.key.id
-  if (!isReply) return
+  if (!isReply) return false // bukan reply = skip
 
   if (m.text.toLowerCase().trim() == jawaban) {
     clearTimeout(timer)
     await m.react('🎉')
     await sock.sendMessage(m.chat, { text: `✅ Benar! Jawaban: *${jawaban}*\n+${poin} Poin` }, { quoted: sentMsg })
     delete this.tebakgambar[id]
+    return true // WAJIB TRUE BIAR KEHAPUS
   } else {
     await m.react('❌')
     await sock.sendMessage(m.chat, { text: `❌ Salah! Coba lagi` }, { quoted: sentMsg })
+    return true // WAJIB TRUE
   }
 }
 
