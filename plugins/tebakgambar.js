@@ -7,20 +7,15 @@ let handler = async (m, { sock, command }) => {
   this.tebakgambar = this.tebakgambar || {}
   let id = m.chat
 
-  // COMMAND NYERAH
   if (command === 'nyerah' || command === 'skip') {
     if (!(id in this.tebakgambar)) return m.reply('Gak ada soal aktif bang')
-
     let [sentMsg, jawaban, poin, timer] = this.tebakgambar[id]
     clearTimeout(timer)
-    await sock.sendMessage(m.chat, {
-      text: `Yaudah nyerah 😮‍💨\nJawaban: *${jawaban}*`
-    }, { quoted: sentMsg })
+    await sock.sendMessage(m.chat, { text: `Yaudah nyerah 😮‍💨\nJawaban: *${jawaban}*` }, { quoted: sentMsg })
     delete this.tebakgambar[id]
     return
   }
 
-  // COMMAND TEBAKGAMBAR
   if (id in this.tebakgambar)
     return m.reply('Masih ada soal yg belum dijawab! Ketik.nyerah buat skip')
 
@@ -32,10 +27,13 @@ let handler = async (m, { sock, command }) => {
 
     let { img, jawaban, deskripsi } = data.data
 
+    // KUNCI: Download jadi buffer dulu biar gak error toString
+    let imgBuffer = await axios.get(img, { responseType: 'arraybuffer' }).then(res => Buffer.from(res.data))
+
     let caption = `*TEBAK GAMBAR*\n\n${deskripsi}\n\nWaktu: ${timeout/1000} detik\nPoin: ${poin}\n\nReply gambar ini buat jawab!\nKetik.nyerah buat skip`
 
     let sent = await sock.sendMessage(m.chat, {
-      image: { url: img },
+      image: imgBuffer, // pake buffer bukan url
       caption
     }, { quoted: m })
 
@@ -55,7 +53,7 @@ let handler = async (m, { sock, command }) => {
   } catch (e) {
     console.log(e)
     await m.react('❌')
-    m.reply('Gagal ambil soal: ' + e.message)
+    m.reply('Gagal: ' + e.message)
   }
 }
 
@@ -63,7 +61,6 @@ handler.help = ['tebakgambar', 'nyerah']
 handler.tags = ['game']
 handler.command = ["tebakgambar", "nyerah", "skip"]
 
-// Handler jawaban - reply gambar soal
 handler.all = async function(m) {
   if (!m.text) return
   this.tebakgambar = this.tebakgambar || {}
@@ -77,15 +74,11 @@ handler.all = async function(m) {
   if (m.text.toLowerCase().trim() == jawaban) {
     clearTimeout(timer)
     await m.react('🎉')
-    await sock.sendMessage(m.chat, {
-      text: `✅ Benar! Jawaban: *${jawaban}*\n+${poin} Poin`
-    }, { quoted: sentMsg })
+    await sock.sendMessage(m.chat, { text: `✅ Benar! Jawaban: *${jawaban}*\n+${poin} Poin` }, { quoted: sentMsg })
     delete this.tebakgambar[id]
   } else {
     await m.react('❌')
-    await sock.sendMessage(m.chat, {
-      text: `❌ Salah! Coba lagi`
-    }, { quoted: sentMsg })
+    await sock.sendMessage(m.chat, { text: `❌ Salah! Coba lagi` }, { quoted: sentMsg })
   }
 }
 
