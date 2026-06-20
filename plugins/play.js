@@ -8,41 +8,38 @@ function formatViews(n) {
     return n.toString();
 }
 
-async function getAudio(query) {
-
+// API Spotify Nexray
+async function spotifyDl(query) {
     const { data } = await axios.get(
-        `https://api.nexray.eu.cc/downloader/ytplayvid?q=${encodeURIComponent(query)}`,
-        { timeout: 30000 }
+        `https://api.nexray.eu.cc/downloader/spotify?url=${encodeURIComponent(query)}`,
+        { timeout: 60000, headers: {"User-Agent": "Mozilla/5.0"} }
     );
-
-    if (!data.status) {
-        throw new Error("Lagu tidak ditemukan");
-    }
-
-    return data.result;
+    return data;
 }
 
 let handler = async (m, { sock, text }) => {
-
     if (!text) {
-        return m.reply(
-            `🎵 *PLAY MUSIC*\n\n` +
-            `Contoh:\n` +
-            `${m.cmd} bergema`
-        );
+        return m.reply(`🎵 *PLAY MUSIC*\n\nContoh:\n${m.cmd} bergema`);
     }
 
     try {
+        await sock.sendMessage(m.chat, { react: { text: '⏳', key: m.key } });
 
+        // 1. Search YT dulu buat ambil data + thumbnail
         const search = await yts(text);
-
         if (!search.videos.length) {
+            await sock.sendMessage(m.chat, { react: { text: '❌', key: m.key } });
             return m.reply("❌ Lagu tidak ditemukan");
         }
-
         const video = search.videos[0];
 
-        const res = await getAudio(text);
+        // 2. Download audio pake Spotify tapi query nya judul YT
+        const res = await spotifyDl(video.title);
+        if (!res.status ||!res.result?.url) {
+            await sock.sendMessage(m.chat, { react: { text: '❌', key: m.key } });
+            return m.reply("❌ Audio Spotify tidak ditemukan");
+        }
+        const audioData = res.result;
 
         const caption = `
 🎵 *PLAY MUSIC*
@@ -56,47 +53,31 @@ let handler = async (m, { sock, text }) => {
 🔗 ${video.url}
 `.trim();
 
+        // 3. Kirim thumbnail YT
         const thumbMsg = await sock.sendMessage(
             m.chat,
-            {
-                image: {
-                    url: video.thumbnail
-                },
-                caption
-            },
-            {
-                quoted: m
-            }
+            { image: { url: video.thumbnail }, caption },
+            { quoted: m }
         );
 
+        // 4. Kirim audio Spotify - file kecil anti ENOSPC
         await sock.sendMessage(
             m.chat,
             {
-                audio: {
-                    url: res.download_url || res.url
-                },
+                audio: { url: audioData.url },
                 mimetype: "audio/mpeg",
                 ptt: false,
                 fileName: `${video.title}.mp3`
             },
-            {
-                quoted: thumbMsg
-            }
+            { quoted: thumbMsg }
         );
+
+        await sock.sendMessage(m.chat, { react: { text: '✅', key: m.key } });
 
     } catch (e) {
-
         console.log(e);
-
-        if (e.message.includes("ENOSPC")) {
-            return m.reply(
-                "❌ Storage server penuh (ENOSPC).\n\nCek disk panel atau bersihkan cache."
-            );
-        }
-
-        m.reply(
-            `❌ Error\n\n${e.message}`
-        );
+        await sock.sendMessage(m.chat, { react: { text: '❌', key: m.key } });
+        m.reply(`❌ Error\n${e.message}`);
     }
 };
 
