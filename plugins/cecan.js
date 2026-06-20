@@ -2,12 +2,30 @@ let fetch = require('node-fetch')
 let { generateWAMessageContent, generateWAMessageFromContent } = require('@barz-dev/baileys')
 
 let handler = async (m, { conn }) => {
-  // PAKAI GLOBAL SOCK KALO CONN BERMASALAH
-  const client = conn || global.sock
+  // AMBIL CLIENT DARI MANA SAJA YANG ADA
+  let client = conn || global.conn || global.sock || global.client
   
-  if (!client) return m.reply('❌ Bot error, coba lagi nanti')
+  // KALO MASIH UNDEFINED, COBA AMBIL DARI GLOBAL
+  if (!client) {
+    for (let key in global) {
+      if (global[key] && typeof global[key].sendMessage === 'function') {
+        client = global[key]
+        break
+      }
+    }
+  }
   
-  await client.sendMessage(m.chat, { text: '🔍 Ngacak 10 cecan... Bikin album' }, { quoted: m })
+  if (!client) {
+    return m.reply('❌ Bot error: client tidak ditemukan!')
+  }
+  
+  // TEST KIRIM PESAN
+  try {
+    await client.sendMessage(m.chat, { text: '🔍 Ngacak 10 cecan... Bikin album' }, { quoted: m })
+  } catch (err) {
+    console.log('Error sendMessage:', err)
+    return m.reply('❌ Gagal kirim pesan: ' + err.message)
+  }
   
   let endpoints = [
     'https://api.ikyyxd.my.id/random/cecan/china',
