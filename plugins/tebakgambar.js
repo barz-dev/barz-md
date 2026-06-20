@@ -28,6 +28,26 @@ function editDistance(s1, s2) {
   return costs[s2.length]
 }
 
+// API Free tanpa apikey
+async function getSoal() {
+  let apis = [
+    'https://api.siputzx.my.id/api/games/tebakgambar',
+    'https://api.betabotz.eu.org/api/game/tebakgambar'
+  ]
+
+  for(let url of apis) {
+    try {
+      let { data } = await axios.get(url, { timeout: 8000 })
+      if(data.status && data.data) return { img: data.data.img, jawaban: data.data.jawaban, deskripsi: data.data.deskripsi }
+      if(data.status && data.result) return { img: data.result.img, jawaban: data.result.jawaban, deskripsi: data.result.deskripsi }
+    } catch(e) {
+      console.log(`[API GAGAL] ${url} - ${e.code}`)
+      continue
+    }
+  }
+  throw new Error('API tebakgambar lagi down semua bang 😭 Coba 5 menit lagi')
+}
+
 let handler = async (m, { sock, command }) => {
   this.tebakgambar = this.tebakgambar || {}
   let id = m.chat
@@ -47,10 +67,7 @@ let handler = async (m, { sock, command }) => {
   await m.react('⏱️')
 
   try {
-    let { data } = await axios.get('https://api.zeltoria.my.id/games/tebakgambar')
-    if (!data.status ||!data.result) return m.reply('API error bang 😭')
-
-    let { img, jawaban, deskripsi } = data.result
+    let { img, jawaban, deskripsi } = await getSoal()
     let imgBuffer = await axios.get(img, { responseType: 'arraybuffer', timeout: 10000 }).then(res => Buffer.from(res.data))
 
     let caption = `*TEBAK GAMBAR*\n\n${deskripsi}\n\nWaktu: ${timeout/1000} detik\nPoin: ${poin}\n\nReply gambar ini buat jawab!\nKetik.nyerah buat skip`
@@ -90,8 +107,6 @@ handler.all = async function(m) {
   let quotedId = m.quoted?.id || m.quoted?.key?.id
   if (quotedId!= key) return false
 
-  console.log('[TEBAKGAMBAR] Ke-trigger! Jawab:', m.text) // DEBUG
-
   let userJawab = m.text.toLowerCase().trim().replace(/[^a-z0-9]/g, '')
   let realJawab = jawaban.toLowerCase().replace(/[^a-z0-9]/g, '')
   let mirip = similarity(userJawab, realJawab)
@@ -115,7 +130,7 @@ handler.all = async function(m) {
       return true
     }
   } catch(e) {
-    console.log('[TEBAKGAMBAR SEND ERROR]', e) // Kalo send gagal, log nya keluar sini
+    console.log('[TEBAKGAMBAR SEND ERROR]', e)
     await m.reply('Error pas ngirim: ' + e.message)
     return true
   }
