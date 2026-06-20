@@ -34,9 +34,9 @@ let handler = async (m, { sock, command }) => {
 
   if (command === 'nyerah' || command === 'skip') {
     if (!(id in this.tebakgambar)) return m.reply('Gak ada soal aktif bang')
-    let { msg, jawaban, timer } = this.tebakgambar[id]
+    let { key, jawaban, timer } = this.tebakgambar[id]
     clearTimeout(timer)
-    await sock.sendMessage(m.chat, { text: `Yaudah nyerah 😮‍💨\nJawaban: *${jawaban}*` }, { quoted: msg })
+    await sock.sendMessage(m.chat, { text: `Yaudah nyerah 😮‍💨\nJawaban: *${jawaban}*` }, { quoted: m })
     delete this.tebakgambar[id]
     return
   }
@@ -47,7 +47,6 @@ let handler = async (m, { sock, command }) => {
   await m.react('⏱️')
 
   try {
-    // GANTI API KE ZELTORIA - LEBIH STABIL
     let { data } = await axios.get('https://api.zeltoria.my.id/games/tebakgambar')
     if (!data.status ||!data.result) return m.reply('API error bang 😭')
 
@@ -56,16 +55,14 @@ let handler = async (m, { sock, command }) => {
 
     let caption = `*TEBAK GAMBAR*\n\n${deskripsi}\n\nWaktu: ${timeout/1000} detik\nPoin: ${poin}\n\nReply gambar ini buat jawab!\nKetik.nyerah buat skip`
 
-    let msg = await sock.sendMessage(m.chat, { image: imgBuffer, caption }, { quoted: m })
+    let sent = await sock.sendMessage(m.chat, { image: imgBuffer, caption }, { quoted: m })
 
-    // SIMPEN key.id BUKAN msg.id biar akurat
     this.tebakgambar[id] = {
-      msg,
-      key: msg.key.id,
+      key: sent.key.id,
       jawaban: jawaban.toLowerCase(),
       timer: setTimeout(() => {
         if (this.tebakgambar[id]) {
-          sock.sendMessage(m.chat, { text: `Waktu habis!\nJawaban: *${jawaban}*` }, { quoted: msg })
+          sock.sendMessage(m.chat, { text: `Waktu habis!\nJawaban: *${jawaban}*` }, { quoted: m })
           delete this.tebakgambar[id]
         }
       }, timeout)
@@ -89,35 +86,37 @@ handler.all = async function(m) {
   let id = m.chat
   if (!(id in this.tebakgambar)) return false
 
-  let { msg, key, jawaban, timer } = this.tebakgambar[id]
-
-  // FIX: Cek quoted.id ATAU quoted.key.id biar gak miss
+  let { key, jawaban, timer } = this.tebakgambar[id]
   let quotedId = m.quoted?.id || m.quoted?.key?.id
   if (quotedId!= key) return false
+
+  console.log('[TEBAKGAMBAR] Ke-trigger! Jawab:', m.text) // DEBUG
 
   let userJawab = m.text.toLowerCase().trim().replace(/[^a-z0-9]/g, '')
   let realJawab = jawaban.toLowerCase().replace(/[^a-z0-9]/g, '')
   let mirip = similarity(userJawab, realJawab)
   let bedaHuruf = editDistance(userJawab, realJawab)
 
-  if (userJawab == realJawab) {
-    clearTimeout(timer)
-    await m.react('🎉')
-    await sock.sendMessage(m.chat, { text: `✅ Benar! Jawaban: *${jawaban}*\n+${poin} Poin` }, { quoted: msg })
-    delete this.tebakgambar[id]
-    return true
-  } else {
-    await m.react('❌')
-
-    if (bedaHuruf <= 2 || mirip >= 0.85) {
-      await sock.sendMessage(m.chat, {
-        text: `🤔 Salah tapi udah mendekati!\nJawaban lu: *${m.text}*\nBeda ${bedaHuruf} huruf doang!`
-      }, { quoted: msg })
+  try {
+    if (userJawab == realJawab) {
+      clearTimeout(timer)
+      await m.react('🎉')
+      await sock.sendMessage(m.chat, { text: `✅ Benar! Jawaban: *${jawaban}*\n+${poin} Poin` }, { quoted: m })
+      delete this.tebakgambar[id]
+      return true
     } else {
-      await sock.sendMessage(m.chat, {
-        text: `❌ Salah jauh banget 😭\nJawaban lu: *${m.text}*`
-      }, { quoted: msg })
+      await m.react('❌')
+
+      if (bedaHuruf <= 2 || mirip >= 0.85) {
+        await sock.sendMessage(m.chat, { text: `🤔 Salah tapi udah mendekati!\nJawaban lu: *${m.text}*\nBeda ${bedaHuruf} huruf doang!` }, { quoted: m })
+      } else {
+        await sock.sendMessage(m.chat, { text: `❌ Salah jauh banget 😭\nJawaban lu: *${m.text}*` }, { quoted: m })
+      }
+      return true
     }
+  } catch(e) {
+    console.log('[TEBAKGAMBAR SEND ERROR]', e) // Kalo send gagal, log nya keluar sini
+    await m.reply('Error pas ngirim: ' + e.message)
     return true
   }
 }
