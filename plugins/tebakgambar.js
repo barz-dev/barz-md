@@ -35,7 +35,7 @@ let handler = async (m, { sock }) => {
 
 handler.help = ['tebakgambar']
 handler.tags = ['game'] // masuk kategori 𝗚𝗔𝗠𝗘 🎮
-handler.command = /^tebakgambar$/i
+handler.command = ["tebakgambar"]
 
 // Handler jawaban
 handler.all = async function(m) {
