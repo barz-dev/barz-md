@@ -45,7 +45,7 @@ Contoh:
         const caption = `🎵 *${result.title}*
 
 👤 Artist : ${result.artist}
-⚡ Source : Nexray`;
+barz ange cuy`;
 
         await sock.sendMessage(
             m.chat,
