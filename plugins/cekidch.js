@@ -1,194 +1,189 @@
-const axios = require("axios")
-
-let prepareWAMessageMedia
-try {
-  prepareWAMessageMedia = require("@badzz88/baileys").prepareWAMessageMedia
-} catch {}
-
 let handler = async (m, { sock, text }) => {
+  function formatDate(timestamp) {
+    if (!timestamp) return "—"
+
+    const d = new Date(
+      typeof timestamp === "number" && timestamp < 1e12
+        ? timestamp * 1000
+        : timestamp
+    )
+
+    const pad = n => String(n).padStart(2, "0")
+
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+  }
+
+  function formatSubs(count) {
+    if (!count || count === 0) return "0"
+
+    if (count >= 1000000) {
+      return (count / 1000000)
+        .toFixed(1)
+        .replace(/\.0$/, "") + "M"
+    }
+
+    if (count >= 1000) {
+      return (count / 1000)
+        .toFixed(1)
+        .replace(/\.0$/, "") + "K"
+    }
+
+    return String(count)
+  }
+
   if (!text) {
     return m.reply(
-      `Contoh:\n${global.prefix}cekch https://whatsapp.com/channel/xxxxxxxx`
+`📢 *CEK INFO CHANNEL*
+
+Contoh:
+${global.prefix}cekidch https://whatsapp.com/channel/xxxxxxxx`
     )
   }
 
-  const match = text.match(
-    /whatsapp\.com\/channel\/([A-Za-z0-9]+)/i
-  )
-
-  if (!match) {
-    return m.reply("Link channel tidak valid!")
+  if (!text.includes("https://whatsapp.com/channel/")) {
+    return m.reply("❌ Link channel tidak valid!")
   }
-
-  const inviteCode = match[1]
 
   try {
-    const data = await sock.newsletterMetadata(
-      "invite",
-      inviteCode
-    )
+    if (m.react) await m.react("🕕")
 
-    const name =
-      data.name ||
-      data.thread_metadata?.name ||
-      "Tidak diketahui"
+    const metadata = await sock.cekIDSaluran(text)
 
-    const newsletterId =
-      data.id ||
-      data.newsletterJid ||
-      "Tidak diketahui"
+    if (!metadata?.id) {
+      if (m.react) await m.react("❌")
+      return m.reply("❌ Channel tidak ditemukan!")
+    }
 
-    const desc =
-      data.description ||
-      data.thread_metadata?.description ||
+    const chName =
+      metadata.name ||
+      "Unknown Channel"
+
+    const chId =
+      metadata.id ||
       "-"
 
-    const followers =
-      data.subscribers ||
-      data.subscribers_count ||
-      data.followers ||
+    const chSubs =
+      metadata.subscribers ??
+      metadata.subscribers_count ??
       0
 
-    const verified =
-      data.verification === "verified" ||
-      data.verified === true
-        ? "✅ Verified"
-        : "❌ Tidak"
+    const chDesc =
+      metadata.description ||
+      "Tidak ada deskripsi"
 
-    const creation =
-      data.creation_time
-        ? new Date(
-            data.creation_time * 1000
-          ).toLocaleString("id-ID")
-        : "-"
+    const chVerified =
+      metadata.verification === "VERIFIED"
 
-    let thumb = null
+    const chCreated =
+      formatDate(metadata.creation_time)
 
-    try {
-      const picUrl =
-        data.picture?.direct_path ||
-        data.picture ||
-        data.preview ||
-        data.profile_picture_url
+    const chPic =
+      metadata.preview === "https://mmg.whatsapp.net"
+        ? global.thumbnail
+        : metadata.preview
 
-      if (picUrl) {
-        const res = await axios.get(picUrl, {
-          responseType: "arraybuffer"
-        })
-        thumb = Buffer.from(res.data)
-      }
-    } catch {}
+    const descPreview =
+      chDesc.length > 180
+        ? chDesc.slice(0, 180) + "..."
+        : chDesc
 
-    const body =
-`╭━━━〔 📢 CHANNEL INFO 〕━━━⬣
+    const infoText =
+`╭━━━〔 📢 CHANNEL PROFILE 〕━━━⬣
 
-▢ Nama
-└ ${name}
+👤 *${chName}*
+${chVerified ? "✅ Official Verified Channel" : "⚪ Community Channel"}
 
-▢ Followers
-└ ${followers.toLocaleString("id-ID")}
+╭─〔 📊 Statistik Channel 〕
+│ 👥 Followers : ${formatSubs(chSubs)}
+│ 🆔 ID Channel :
+│ ${chId}
+│
+│ 📅 Dibuat :
+│ ${chCreated}
+╰────────────⬣
 
-▢ Newsletter ID
-└ ${newsletterId}
+╭─〔 📝 Deskripsi 〕
+│ ${descPreview}
+╰────────────⬣
 
-▢ Verified
-└ ${verified}
+╭─〔 ⚡ Informasi 〕
+│ 📢 WhatsApp Channel
+│ 📋 ID Bisa Disalin
+│ 🔗 Link Aktif
+│ 🚀 Real Time Metadata
+╰────────────⬣
 
-▢ Dibuat
-└ ${creation}
+Powered By ${global.botname}`
 
-▢ Deskripsi
-└ ${desc}
-
-╰━━━━━━━━━━━━━━━━⬣`
-
-    const nativeFlow = {
-      buttons: [
-        {
-          name: "cta_copy",
-          buttonParamsJson: JSON.stringify({
-            display_text: "📋 Salin ID",
-            copy_code: newsletterId
-          })
-        },
-        {
-          name: "cta_url",
-          buttonParamsJson: JSON.stringify({
-            display_text: "📢 Buka Channel",
-            url: `https://whatsapp.com/channel/${inviteCode}`,
-            merchant_url: `https://whatsapp.com/channel/${inviteCode}`
-          })
-        }
-      ]
-    }
-
-    if (thumb && prepareWAMessageMedia) {
-      const media = await prepareWAMessageMedia(
-        { image: thumb },
-        { upload: sock.waUploadToServer }
-      )
-
-      return await sock.relayMessage(
-        m.chat,
-        {
-          viewOnceMessage: {
-            message: {
-              interactiveMessage: {
-                header: {
-                  hasMediaAttachment: true,
-                  imageMessage: media.imageMessage
-                },
-                body: {
-                  text: body
-                },
-                footer: {
-                  text: global.botname
-                },
-                nativeFlowMessage: nativeFlow
-              }
-            }
-          }
-        },
-        {}
-      )
-    }
-
-    await sock.relayMessage(
-      m.chat,
+    const buttons = [
       {
-        viewOnceMessage: {
-          message: {
-            interactiveMessage: {
-              body: {
-                text: body
-              },
-              footer: {
-                text: global.botname
-              },
-              nativeFlowMessage: nativeFlow
-            }
-          }
-        }
+        name: "cta_copy",
+        buttonParamsJson: JSON.stringify({
+          display_text: "📋 Salin ID Channel",
+          copy_code: chId
+        })
       },
-      {}
+      {
+        name: "cta_url",
+        buttonParamsJson: JSON.stringify({
+          display_text: "📢 Buka Channel",
+          url: text,
+          merchant_url: text
+        })
+      },
+      {
+        name: "quick_reply",
+        buttonParamsJson: JSON.stringify({
+          display_text: "🔍 Refresh",
+          id: `.cekidch ${text}`
+        })
+      }
+    ]
+
+    await sock.sendButton(
+      m.chat,
+      chPic,
+      infoText,
+      m,
+      {
+        footer:
+          `👥 ${formatSubs(chSubs)} Followers • ${global.botname}`,
+        buttons
+      }
     )
 
+    if (m.react) await m.react("✅")
+
   } catch (e) {
-    console.error(e)
+    console.error("[CEKIDCH]", e)
+
+    if (m.react) await m.react("❌")
 
     m.reply(
-`❌ Gagal mengambil data channel
+`❌ Gagal mengambil informasi channel
 
 Kemungkinan:
-• Link tidak valid
+• Link salah
+• Channel tidak ditemukan
 • Channel privat
-• Fork baileys tidak support newsletterMetadata()`
+• Method cekIDSaluran tidak tersedia
+
+Detail:
+${e.message || e}`
     )
   }
 }
 
-handler.command = ["cekch", "cekidch"]
+handler.command = [
+  "cekidch",
+  "cekch",
+  "idch",
+  "channelid",
+  "infoch",
+  "channelinfo"
+]
+
 handler.tags = ["tools"]
-handler.help = ["cekch <link channel>"]
+handler.help = ["cekidch <link channel>"]
 
 module.exports = handler
