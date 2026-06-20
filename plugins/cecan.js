@@ -1,7 +1,8 @@
 let fetch = require('node-fetch')
 let { generateWAMessageContent, generateWAMessageFromContent } = require('@barz-dev/baileys')
 
-let handler = async (m, { sock }) => {
+// PARAMETER: (sock, m) bukan (m, { sock })
+let handler = async (sock, m) => {  
   await sock.sendMessage(m.chat, { text: '🔍 Ngacak 10 cecan... Bikin album' }, { quoted: m })
   
   let endpoints = [
@@ -24,10 +25,9 @@ let handler = async (m, { sock }) => {
       })
       let buffer = await res.buffer()
       
-      // Upload ke server WA
       let mediaMsg = await generateWAMessageContent({ 
         image: buffer 
-      }, { upload: sock.waUploadToServer }) // ganti jadi sock
+      }, { upload: sock.waUploadToServer })
       
       mediaArray.push({
         imageMessage: {
@@ -43,7 +43,9 @@ let handler = async (m, { sock }) => {
     }
   }
 
-  if (mediaArray.length === 0) return sock.sendMessage(m.chat, { text: 'Zonk bang, API error semua' }, { quoted: m })
+  if (mediaArray.length === 0) {
+    return sock.sendMessage(m.chat, { text: 'Zonk bang, API error semua' }, { quoted: m })
+  }
 
   let albumMsg = generateWAMessageFromContent(m.chat, {
     albumMessage: {
