@@ -28,24 +28,19 @@ function editDistance(s1, s2) {
   return costs[s2.length]
 }
 
-// API Free tanpa apikey
 async function getSoal() {
   let apis = [
     'https://api.siputzx.my.id/api/games/tebakgambar',
     'https://api.betabotz.eu.org/api/game/tebakgambar'
   ]
-
   for(let url of apis) {
     try {
       let { data } = await axios.get(url, { timeout: 8000 })
       if(data.status && data.data) return { img: data.data.img, jawaban: data.data.jawaban, deskripsi: data.data.deskripsi }
       if(data.status && data.result) return { img: data.result.img, jawaban: data.result.jawaban, deskripsi: data.result.deskripsi }
-    } catch(e) {
-      console.log(`[API GAGAL] ${url} - ${e.code}`)
-      continue
-    }
+    } catch(e) { continue }
   }
-  throw new Error('API tebakgambar lagi down semua bang 😭 Coba 5 menit lagi')
+  throw new Error('API tebakgambar down semua bang 😭')
 }
 
 let handler = async (m, { sock, command }) => {
@@ -68,11 +63,11 @@ let handler = async (m, { sock, command }) => {
 
   try {
     let { img, jawaban, deskripsi } = await getSoal()
-    let imgBuffer = await axios.get(img, { responseType: 'arraybuffer', timeout: 10000 }).then(res => Buffer.from(res.data))
 
     let caption = `*TEBAK GAMBAR*\n\n${deskripsi}\n\nWaktu: ${timeout/1000} detik\nPoin: ${poin}\n\nReply gambar ini buat jawab!\nKetik.nyerah buat skip`
 
-    let sent = await sock.sendMessage(m.chat, { image: imgBuffer, caption }, { quoted: m })
+    // KUNCI: Kirim URL langsung, gak pake download buffer
+    let sent = await sock.sendMessage(m.chat, { image: { url: img }, caption }, { quoted: m })
 
     this.tebakgambar[id] = {
       key: sent.key.id,
@@ -121,7 +116,6 @@ handler.all = async function(m) {
       return true
     } else {
       await m.react('❌')
-
       if (bedaHuruf <= 2 || mirip >= 0.85) {
         await sock.sendMessage(m.chat, { text: `🤔 Salah tapi udah mendekati!\nJawaban lu: *${m.text}*\nBeda ${bedaHuruf} huruf doang!` }, { quoted: m })
       } else {
@@ -130,8 +124,7 @@ handler.all = async function(m) {
       return true
     }
   } catch(e) {
-    console.log('[TEBAKGAMBAR SEND ERROR]', e)
-    await m.reply('Error pas ngirim: ' + e.message)
+    await m.reply('Error: ' + e.message)
     return true
   }
 }
