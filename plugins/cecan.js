@@ -10,34 +10,35 @@ let handler = async (m, { sock }) => {
 
   await m.react('⏱️')
 
-  try {
-    // 1. Download 10 gambar bareng
-    let urls = Array.from({length: 10}, () => endpoints[Math.floor(Math.random() * endpoints.length)])
-    
-    let results = await Promise.allSettled(
-      urls.map(u => fetch(u, {timeout: 20000}).then(r => r.buffer()))
-    )
-
-    // 2. Filter yg sukses + buffer valid. INI KUNCINYA BIAR GAK ERROR
-    let images = results
-      .filter(r => r.status === 'fulfilled' && r.value && r.value.length > 1000)
-      .map(r => r.value)
-
-    if (!images.length) {
-      await m.react('❌')
-      return m.reply('☢️ Zonk bang, semua API error/timeout')
+  let images = []
+  
+  // Download 1-1 tapi tetep cepet. Kalo gagal skip aja
+  for(let i = 0; i < 10; i++) {
+    try {
+      let url = endpoints[Math.floor(Math.random() * endpoints.length)]
+      let res = await fetch(url, {timeout: 15000})
+      let buf = await res.buffer()
+      if(buf && buf.length > 1000) images.push(buf)
+    } catch {
+      continue // skip kalo error, lanjut gambar berikutnya
     }
+  }
 
-    // 3. @barz-dev/baileys: kirim buffer langsung, auto nyatu
-    await sock.sendAlbum(m.chat, images.map(buf => ({ image: buf })), { quoted: m })
-
-    await sock.sendMessage(m.chat, { text: 'itu semua my bini barz loh 😏' }, { quoted: m })
-    await m.react('✅')
-
-  } catch (e) {
-    console.log('[Cecan Error]', e)
+  if(!images.length) {
     await m.react('❌')
-    m.reply('☢️ Error: ' + e.message)
+    return m.reply('☢️ Zonk bang, 10/10 API gagal')
+  }
+
+  try {
+    // @barz-dev/baileys sendAlbum
+    await sock.sendAlbum(m.chat, images.map(buf => ({ image: buf })), { quoted: m })
+    
+    await sock.sendMessage(m.chat, { text: `dapet ${images.length}/10 foto 😏` }, { quoted: m })
+    await m.react('✅')
+  } catch(e) {
+    console.log(e)
+    await m.react('❌')
+    m.reply('☢️ Error sendAlbum: ' + e.message)
   }
 }
 
