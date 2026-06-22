@@ -25,7 +25,7 @@ let handler = async (m, { sock }) => {
   }
 }
 
-handler.command = ['cium']
+handler.command = ['cium', 'kiss', 'kissme', 'ciumaku']
 handler.help = ['cium']
 handler.tags = ['fun']
 module.exports = handler
