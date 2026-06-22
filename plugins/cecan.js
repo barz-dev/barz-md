@@ -1,5 +1,5 @@
 let fetch = require('node-fetch')
-let { generateWAMessageFromContent, proto, uploadFile } = require('@whiskeysockets/baileys')
+let { generateWAMessageFromContent, proto, uploadFile } = require('@barz-dev/baileys')
 
 let handler = async (m, { sock }) => {
   let endpoints = [
@@ -15,7 +15,7 @@ let handler = async (m, { sock }) => {
   let urls = Array.from({length: 10}, () => endpoints[Math.floor(Math.random() * endpoints.length)])
   let bufs = await Promise.allSettled(urls.map(u => fetch(u, {timeout: 20000}).then(r => r.buffer()).catch(() => null)))
   let images = bufs.map(r => r.value).filter(b => b && b.length > 1000)
-  if (!images.length) return m.reply('☢️ Zonk bang')
+  if (!images.length) return m.reply('☢️ My bini barz lagi tidur bang')
 
   // 2. Upload semua + bikin imageMessage
   let msgs = []
