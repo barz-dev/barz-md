@@ -71,7 +71,7 @@ let handler = async (m, { sock, text }) => {
       return;
     }
 
-    // WEBSITE ZIP
+  
     const folder = `./tmp/site-${Date.now()}`;
 
     fs.mkdirSync(folder, { recursive: true });
